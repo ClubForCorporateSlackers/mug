@@ -86,7 +86,7 @@
 
 | リスク | 対策 |
 |---|---|
-| 期限がない長期のキー | 権限を `lambda:InvokeFunctionUrl`（この関数のみ）に絞る。ハッカソン後に削除する |
+| 期限がない長期のキー | 権限をこの関数の `lambda:InvokeFunctionUrl` と `lambda:InvokeFunction`（関数URL経由のときだけ。条件 `lambda:InvokedViaFunctionUrl = true`）に絞る。2025年10月以降の関数URLは両方が必要（[decisions.md](./decisions.md) #23）。ハッカソン後に削除する |
 | Worker のコードを書き換えられると取り出せる | `worker/` の変更は必ずレビュー。`main` に直接 push しない |
 | Cloudflare のアカウントの乗っ取り | 2段階認証を必須にする |
 | ログや `.dev.vars` からの漏れ | `console.log(env)` 禁止。`.dev.vars` はコミットしない |

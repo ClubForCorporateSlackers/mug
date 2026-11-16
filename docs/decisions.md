@@ -19,7 +19,7 @@
 | 12 | 11/16 | AIへの指示は**AGENTS.md**に書く | CLAUDE.md／AGENTS.md | Claude Code以外のAIツールでも読めるため | 小松 |
 | 13 | 11/16 | 構成は**案F**：Cloudflare Worker が入口（画面配信＋`/api` 中継）、AWS の Lambda関数URL（`AWS_IAM`）＋DynamoDB＋Cognito | 案A〜F、F'（[architecture.md](./architecture.md)） | レビューの指摘（入口を1つに、関数URLの直接呼び出しを防ぐ、API GatewayはJWT検証だけでは理由にならない）に答えつつ、初日からpushで自動デプロイとプレビューURLが使える | チーム |
 | 14 | 11/16 | Worker から関数URLへは **AWSの署名（SigV4）を付けて中継**する | 署名（案F）／合言葉ヘッダー（案F'） | 署名なら AWS の手前で403になり、Lambdaが起動しない。合言葉はLambdaが起動してから断るので守りが弱い | 小松 |
-| 15 | 11/16 | Worker 用の **IAMユーザーを1つだけ**作り、権限は `lambda:InvokeFunctionUrl`（この関数のみ）。キーは Worker の Secrets にだけ置く。メンバー用のIAMユーザーは作らない | IAMユーザー／IAM Roles Anywhere／自前OIDC | Workers は AWS の外にあり、秘密を何も置かない方法がない。一番簡単な方法で権限を最小にする | 小松 |
+| 15 | 11/16 | Worker 用の **IAMユーザーを1つだけ**作り、権限は ~~`lambda:InvokeFunctionUrl`（この関数のみ）~~ → **#23で変更**。キーは Worker の Secrets にだけ置く。メンバー用のIAMユーザーは作らない | IAMユーザー／IAM Roles Anywhere／自前OIDC | Workers は AWS の外にあり、秘密を何も置かない方法がない。一番簡単な方法で権限を最小にする | 小松 |
 | 16 | 11/16 | 自動デプロイは **Cloudflare の GitHub アプリ**（対象はこのリポジトリだけ） | GitHubアプリ／GitHub Actions＋wrangler | APIトークンをGitHubに置かずに済み、外部に置く秘密が AWS のキー1つになる。プレビューURLも自動 | 小松（オーナー権限あり） |
 | 17 | 11/16 | 名前は **mug**（オランダ語で蚊）。リポジトリ名と Worker 名をそろえる | mosquito-map／kamap ほか | 短く覚えやすい。Worker 名は URL になるので変えない | チーム |
 | 18 | 11/16 | **11/16 24:00 の時点で（22:00から延長）、画面 → Worker → Lambda（hello）がつながっていなければ案Eに切り替える** | — | 締切までの時間を守るため。切り替えは約2〜3時間（AGENTS.md の4つの約束が前提） | チーム |
@@ -27,6 +27,7 @@
 | 20 | 11/16 | フロントは **React＋TypeScript＋Vite＋shadcn/ui**（実行環境は Node.js） | — | フロント担当の決定 | フロント担当 |
 | 21 | 11/16 | 地図の表示は **OpenFreeMap＋MapLibre GL JS**（スタイルは Positron か Liberty。フロント担当が見比べて決める）。市町村の判定は国土地理院のまま | 地理院タイル／OpenFreeMap／CARTO／Google Maps | Google Maps のような簡素な見た目でピンが目立つ。無料で登録もキーも不要。地図と市町村判定はデータ元が違うため、境界ぎわで地図の地名と判定がずれることがある（ランキングは国土地理院の判定に従う） | チーム |
 | 22 | 11/16 | 市町村は国土地理院APIの **muniCd で判定・集計**し、名前は変換表で付ける。取れないとき（海上・API失敗）は「不明」として**投稿は止めない** | 市町村名の文字列で集計 | APIは名前を返さない（コードと町名だけ）。コードなら表記ゆれがない。APIは地理院地図用で外部利用の保証がないため、失敗しても動くようにする | 小松 |
+| 23 | 11/17 | Worker 用 IAMユーザーの権限は、この関数だけを対象に **`lambda:InvokeFunctionUrl`（条件 `lambda:FunctionUrlAuthType = AWS_IAM`）と `lambda:InvokeFunction`（条件 `lambda:InvokedViaFunctionUrl = true`）の2つ** | `InvokeFunctionUrl` だけ（#15） | 2025年10月以降に作った関数URLは、両方の権限がないと 403 になる（公式ドキュメントで確認）。`InvokeFunction` は関数URL経由に限るので、キーで関数を直接呼ぶことはできない | 小松 |
 
 ## 未決定
 
