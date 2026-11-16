@@ -1,0 +1,32 @@
+# 依存パッケージ
+node_modules/
+
+# ビルド結果
+dist/
+build/
+infra/cdk.out/
+*.tsbuildinfo
+
+# 環境変数・秘密情報（コミットしない）
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Cloudflare Wrangler の作業用フォルダ
+.wrangler/
+
+# 自分だけのAIへの指示
+CLAUDE.local.md
+
+# エディタ・OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
+npm-debug.log*
