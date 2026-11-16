@@ -24,7 +24,7 @@ DBの中身は [db-schema.md](./db-schema.md) を参照。
 | 項目 | ルール |
 |---|---|
 | ベースURL | **なし（相対パス）**。画面とAPIは同じドメイン（Worker「mug」）なので、`/api/...` で呼ぶ。手元の開発では Vite のプロキシで Worker に転送する |
-| POST／PUTのヘッダー | `x-amz-content-sha256` に本文のSHA-256（16進数）を付ける。案Fでは Worker が計算し直すので必須ではないが、案Eに切り替えたときにそのまま動くよう**最初から付ける** |
+| POST／PUTのヘッダー | `x-amz-content-sha256` に本文のSHA-256（16進数）を付ける。案Fでは、付いていれば Worker（aws4fetch）は**その値をそのまま署名に使い**、付いていなければ Worker が本文から計算する。値が本文と合わないと AWS で 403 になるので、**送る本文と同じ文字列から計算する**こと（下の「参考」）。案Eに切り替えたときにそのまま動くよう**最初から付ける** |
 | 形式 | 送るのも返すのもJSON（`Content-Type: application/json`） |
 | 認証 | 🔒 の付いたAPIは **`X-Id-Token: <CognitoのIDトークン>`** が必須。🌐 は不要（誰でも呼べる） |
 | `Authorization` ヘッダー | **使わない**。Worker（案F）や CloudFront の OAC（案E）が、AWSの署名を `Authorization` に入れて上書きするため。ログインのトークンは必ず `X-Id-Token` で送る |

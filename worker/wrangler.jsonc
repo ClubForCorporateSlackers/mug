@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Worker の名前は URL（mug.<アカウント名>.workers.dev）になるので変えない
+  "name": "mug",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+
+  // 画面ファイル。/api/* だけ Worker のコードを通し、それ以外はファイルをそのまま返す
+  // フロントができたら directory を "../frontend/dist" に変える
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "single-page-application"
+  },
+
+  // 秘密ではない設定だけをここに書く。AWS のキーは書かない（Secrets に置く）
+  "vars": {
+    "FUNCTION_URL": "https://r252x4iygtlopqgipa3lfu2brq0kupvv.lambda-url.ap-northeast-1.on.aws/"
+  },
+
+  // ログ（Workers Logs）。自動のリクエスト記録（invocation_logs）は、ヘッダー（X-Id-Token）が残るおそれがあるので切る。
+  // コードから出すのは「メソッド・パス・ステータス」の1行だけ。ヘッダー・キー・本文・クエリは出さない
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "invocation_logs": false
+    }
+  }
+}

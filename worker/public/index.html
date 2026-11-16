@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mug（仮）</title>
+</head>
+<body>
+  <!-- 仮の画面：Worker → Lambda の中継を確かめるだけ。フロントができたら置き換える -->
+  <h1>mug（仮）</h1>
+  <button id="hello">/api/hello を呼ぶ</button>
+  <pre id="result"></pre>
+  <script>
+    document.getElementById('hello').addEventListener('click', async () => {
+      const out = document.getElementById('result');
+      out.textContent = '呼び出し中…';
+      try {
+        const res = await fetch('/api/hello'); // 相対パスで呼ぶ（AGENTS.md の約束2）
+        out.textContent = res.status + '\n' + (await res.text());
+      } catch (e) {
+        out.textContent = 'エラー：' + e;
+      }
+    });
+  </script>
+</body>
+</html>
