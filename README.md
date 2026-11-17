@@ -76,6 +76,9 @@ npm run dev
 ```
 
 - APIは `/api/...` の相対パスで呼びます。手元では Vite のプロキシで本番の Worker に転送します。
+- よく使うコマンド：`npm run storybook`（部品の一覧）、`npm run format`（整形）、`npm run lint`、`npm run build`
+- PR には画面のプレビューURLと、その下の Storybook（`<プレビューURL>/storybook/`）のURLがコメントされます
+- PR の CI（`.github/workflows/frontend.yml`）：整形のチェック・lint・ビルド・Storybook のビルド・Lighthouse。ほかに CodeQL（`codeql.yml`）が全体を調べます
 - APIができるまでは、docs/api-spec.md の例をダミーデータとして使って画面を作ってください。
 
 ### バックエンド（小松）

@@ -6,9 +6,10 @@
   "compatibility_date": "2026-11-01",
 
   // デプロイ・プレビュー・wrangler dev の前に、フロントをビルドして frontend/dist を作る。
-  // ここに書いておけば、Cloudflare のビルド設定（ダッシュボード）を変えなくてよい
+  // ここに書いておけば、Cloudflare のビルド設定（ダッシュボード）を変えなくてよい。
+  // プレビュー（main 以外のブランチ）では Storybook も frontend/dist/storybook に入る（package.json の build:worker）
   "build": {
-    "command": "npm ci && npm run build",
+    "command": "npm ci && npm run build:worker",
     "cwd": "../frontend",
     "watch_dir": "../frontend/src"
   },
