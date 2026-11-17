@@ -1,6 +1,8 @@
 import type { LambdaFunctionURLEvent, LambdaFunctionURLResult } from 'aws-lambda';
 import { createHandler } from './app';
 import { createCognitoVerifier } from './auth';
+import { createGsiGeocoder } from './geocoder';
+import { createDynamoPinsRepo, createDynamoRankingsRepo } from './pins';
 import { createDynamoUsersRepo } from './users';
 
 // Lambda の入口。CDK（infra/lib/mug-stack.ts）が渡す環境変数を読んで、本物の Cognito・DynamoDB につなぐ。
@@ -19,6 +21,9 @@ export const handler = async (event: LambdaFunctionURLEvent): Promise<LambdaFunc
   app ??= createHandler({
     verifyIdToken: createCognitoVerifier(requireEnv('USER_POOL_ID'), requireEnv('USER_POOL_CLIENT_ID')),
     users: createDynamoUsersRepo(requireEnv('USERS_TABLE_NAME')),
+    pins: createDynamoPinsRepo(requireEnv('PINS_TABLE_NAME')),
+    rankings: createDynamoRankingsRepo(requireEnv('RANKINGS_TABLE_NAME')),
+    reverseGeocode: createGsiGeocoder(),
   });
   return app(event);
 };

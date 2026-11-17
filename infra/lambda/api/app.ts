@@ -2,14 +2,13 @@ import type { LambdaFunctionURLEvent } from 'aws-lambda';
 import { requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
 import { toMeResponse, validateProfile } from './me';
-import type { UsersRepo } from './users';
+import { createPin, listPins, type PinDeps } from './pin-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
 // 注意：event をそのまま console.log しない（ピンのAPIで元の座標が入るため。トークンも入っている）。
 
-export type Deps = {
+export type Deps = PinDeps & {
   verifyIdToken: VerifyIdToken;
-  users: UsersRepo;
 };
 
 type Route = (event: LambdaFunctionURLEvent, deps: Deps) => Promise<ApiResult>;
@@ -32,6 +31,15 @@ const routes: Record<string, Route> = {
     const user = await deps.users.saveProfile(userId, nickname, bloodType, nowJst());
     return json(200, toMeResponse(user));
   },
+
+  // ピンを立てる（ログイン必須・プロフィール必須）。順番：ログイン 401 → 入力 400 → プロフィール 403
+  'POST /api/pins': async (event, deps) => {
+    const userId = await requireUserId(event, deps.verifyIdToken);
+    return json(201, await createPin(userId, parseJsonBody(event), deps));
+  },
+
+  // 地図の範囲内のピン（ログイン不要）
+  'GET /api/pins': async (event, deps) => json(200, await listPins(event.queryStringParameters, deps)),
 };
 
 export function createHandler(deps: Deps) {

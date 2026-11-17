@@ -16,6 +16,8 @@ export type UserItem = {
 export type UsersRepo = {
   get(userId: string): Promise<UserItem | undefined>;
   saveProfile(userId: string, nickname: string, bloodType: string, now: string): Promise<UserItem>;
+  // ピンを立てたときに pinCount を1増やす（ADD はない項目にも使える）
+  incrementPinCount(userId: string): Promise<void>;
 };
 
 export function createDynamoUsersRepo(tableName: string): UsersRepo {
@@ -41,6 +43,18 @@ export function createDynamoUsersRepo(tableName: string): UsersRepo {
         }),
       );
       return res.Attributes as UserItem;
+    },
+    // 登録済みの人だけ増やす（条件付き）。未登録の人の項目を作ってしまわないため
+    async incrementPinCount(userId) {
+      await db.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId },
+          UpdateExpression: 'ADD pinCount :one',
+          ConditionExpression: 'attribute_exists(userId)',
+          ExpressionAttributeValues: { ':one': 1 },
+        }),
+      );
     },
   };
 }

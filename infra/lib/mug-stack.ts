@@ -72,15 +72,32 @@ export class MugStack extends cdk.Stack {
         USER_POOL_ID: userPool.userPoolId,
         USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         USERS_TABLE_NAME: tables.Users.tableName,
+        PINS_TABLE_NAME: tables.Pins.tableName,
+        RANKINGS_TABLE_NAME: tables.Rankings.tableName,
       },
     });
 
-    // Users テーブルの読み書きだけを許可する（Scan や他のテーブルは許可しない）。
-    // 他のテーブルは、そのAPIを作るときに必要な操作だけを足す。
+    // DynamoDB の権限は、テーブルごとに使う操作だけを許可する（Scan・Delete などは許可しない）。
+    // 他のテーブル（Comments・Reactions）は、そのAPIを作るときに必要な操作だけを足す。
+    // Users：プロフィールの取得・登録、pinCount を増やす
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
         resources: [tables.Users.tableArn],
+      }),
+    );
+    // Pins：ピンの保存（PutItem）と地図の範囲の取得（Query）
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['dynamodb:PutItem', 'dynamodb:Query'],
+        resources: [tables.Pins.tableArn],
+      }),
+    );
+    // Rankings：件数を増やす（UpdateItem の ADD）。読むのはランキングのAPI（4-4）で足す
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['dynamodb:UpdateItem'],
+        resources: [tables.Rankings.tableArn],
       }),
     );
 
