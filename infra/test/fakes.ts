@@ -1,5 +1,6 @@
 import type { LambdaFunctionURLEvent } from 'aws-lambda';
 import { createHandler, type Deps } from '../lambda/api/app';
+import type { CommentItem } from '../lambda/api/comments';
 import type { City } from '../lambda/api/geocoder';
 import type { PinItem, PinSummary } from '../lambda/api/pins';
 import type { UserItem } from '../lambda/api/users';
@@ -9,9 +10,13 @@ import type { UserItem } from '../lambda/api/users';
 export const GOOD_TOKEN = 'good-token';
 export const SUB = 'user-sub-123';
 
-export function setup(opts: { users?: UserItem[]; pins?: PinItem[]; city?: City; overrides?: Partial<Deps> } = {}) {
+export function setup(
+  opts: { users?: UserItem[]; pins?: PinItem[]; comments?: CommentItem[]; city?: City; overrides?: Partial<Deps> } = {},
+) {
   const store = new Map((opts.users ?? []).map((u) => [u.userId, { ...u }]));
-  const pinStore: PinItem[] = [...(opts.pins ?? [])];
+  const pinStore: PinItem[] = (opts.pins ?? []).map((p) => ({ ...p, reactions: { ...p.reactions } }));
+  const commentStore: CommentItem[] = [...(opts.comments ?? [])];
+  const findPin = (key: { cell: string; sk: string }) => pinStore.find((p) => p.cell === key.cell && p.sk === key.sk);
   const rankings = new Map<string, { label: string; count: number }>();
   const geocodeCalls: { lat: number; lng: number }[] = [];
   const queriedCells: string[] = [];
@@ -52,9 +57,30 @@ export function setup(opts: { users?: UserItem[]; pins?: PinItem[]; city?: City;
       async queryCell(cell, limit) {
         queriedCells.push(cell);
         const all = pinStore.filter((p) => p.cell === cell).sort((a, b) => (a.sk < b.sk ? 1 : -1));
-        // 本物と同じく userId・cityCode・cell は読まない
-        const items: PinSummary[] = all.slice(0, limit).map(({ cell: _c, userId: _u, cityCode: _cc, ...rest }) => rest);
+        // 本物と同じく userId・cityCode は読まない
+        const items: PinSummary[] = all.slice(0, limit).map(({ userId: _u, cityCode: _cc, ...rest }) => rest);
         return { items, hasMore: all.length > limit };
+      },
+      async exists(key) {
+        return findPin(key) !== undefined;
+      },
+      async incrementCommentCount(key) {
+        const p = findPin(key);
+        if (!p) return false;
+        p.commentCount += 1;
+        return true;
+      },
+    },
+    comments: {
+      async put(item) {
+        commentStore.push({ ...item });
+      },
+      async list(pinId, limit) {
+        return commentStore
+          .filter((c) => c.pinId === pinId)
+          .sort((a, b) => (a.sk < b.sk ? -1 : 1)) // 古い順
+          .slice(0, limit)
+          .map(({ commentId, nickname, text, createdAt }) => ({ commentId, nickname, text, createdAt }));
       },
     },
     rankings: {
@@ -75,7 +101,7 @@ export function setup(opts: { users?: UserItem[]; pins?: PinItem[]; city?: City;
     now: () => new Date('2026-11-17T03:00:00Z'), // 日本時間 12:00
     ...opts.overrides,
   };
-  return { handler: createHandler(deps), store, pinStore, rankings, geocodeCalls, queriedCells };
+  return { handler: createHandler(deps), store, pinStore, commentStore, rankings, geocodeCalls, queriedCells };
 }
 
 export function event(

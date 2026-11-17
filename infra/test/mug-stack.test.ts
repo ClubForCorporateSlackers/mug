@@ -97,6 +97,7 @@ test('Lambda に Cognito の ID とテーブル名を環境変数で渡す', () 
         USERS_TABLE_NAME: Match.anyValue(),
         PINS_TABLE_NAME: Match.anyValue(),
         RANKINGS_TABLE_NAME: Match.anyValue(),
+        COMMENTS_TABLE_NAME: Match.anyValue(),
       },
     },
   });
@@ -120,7 +121,8 @@ test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ
   }
   expect(granted).toEqual({
     [idOf('Users')!]: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
-    [idOf('Pins')!]: ['dynamodb:PutItem', 'dynamodb:Query'],
+    [idOf('Pins')!]: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:UpdateItem'],
+    [idOf('Comments')!]: ['dynamodb:PutItem', 'dynamodb:Query'],
     [idOf('Rankings')!]: ['dynamodb:UpdateItem'],
   });
 });

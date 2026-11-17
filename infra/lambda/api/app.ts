@@ -1,17 +1,20 @@
 import type { LambdaFunctionURLEvent } from 'aws-lambda';
 import { requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
+import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
 import { createPin, listPins, type PinDeps } from './pin-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
 // 注意：event をそのまま console.log しない（ピンのAPIで元の座標が入るため。トークンも入っている）。
 
-export type Deps = PinDeps & {
-  verifyIdToken: VerifyIdToken;
-};
+export type Deps = PinDeps &
+  CommentDeps & {
+    verifyIdToken: VerifyIdToken;
+  };
 
-type Route = (event: LambdaFunctionURLEvent, deps: Deps) => Promise<ApiResult>;
+// params は、パスの中の {pinId} などの値（下の paramRoutes で使う）
+type Route = (event: LambdaFunctionURLEvent, deps: Deps, params: string[]) => Promise<ApiResult>;
 
 // 「メソッド パス」→ 処理。APIを増やすときはここに1行足す
 const routes: Record<string, Route> = {
@@ -42,16 +45,51 @@ const routes: Record<string, Route> = {
   'GET /api/pins': async (event, deps) => json(200, await listPins(event.queryStringParameters, deps)),
 };
 
+// パスに値（{pinId} など）が入るAPI。[メソッド, パスの形, 処理]。( ) の部分が params に入る
+const paramRoutes: [string, RegExp, Route][] = [
+  // コメント一覧（ログイン不要）
+  ['GET', /^\/api\/pins\/([^/]+)\/comments$/, async (_event, deps, [pinId]) => json(200, await listComments(pinId, deps))],
+  // コメントする（ログイン必須・プロフィール必須）
+  [
+    'POST',
+    /^\/api\/pins\/([^/]+)\/comments$/,
+    async (event, deps, [pinId]) => {
+      const userId = await requireUserId(event, deps.verifyIdToken);
+      return json(201, await createComment(userId, pinId, parseJsonBody(event), deps));
+    },
+  ],
+];
+
+// 「メソッド パス」に合う処理と params を探す
+function findRoute(method: string, path: string): { route: Route; params: string[] } | undefined {
+  const exact = routes[`${method} ${path}`];
+  if (exact) return { route: exact, params: [] };
+  for (const [m, pattern, route] of paramRoutes) {
+    const match = m === method ? pattern.exec(path) : null;
+    if (match) return { route, params: match.slice(1).map(safeDecode) };
+  }
+  return undefined;
+}
+
+// %xx の形をもとに戻す。壊れた形ならそのまま（このあと pinId の形のチェックで 404 になる）
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 export function createHandler(deps: Deps) {
   return async (event: LambdaFunctionURLEvent): Promise<ApiResult> => {
     const method = event.requestContext.http.method;
     // 末尾の / は無視する（/api/me/ も /api/me として扱う）
     const path = event.rawPath.length > 1 ? event.rawPath.replace(/\/+$/, '') : event.rawPath;
-    const route = routes[`${method} ${path}`];
+    const found = findRoute(method, path);
 
     try {
-      if (!route) throw new ApiError('NOT_FOUND', 'そのAPIはありません');
-      return await route(event, deps);
+      if (!found) throw new ApiError('NOT_FOUND', 'そのAPIはありません');
+      return await found.route(event, deps, found.params);
     } catch (e) {
       if (e instanceof ApiError) return errorResponse(e.code, e.message);
       // 想定外のエラー。ログにはメソッド・パスとエラーの種類だけを出す（本文やヘッダーは出さない）

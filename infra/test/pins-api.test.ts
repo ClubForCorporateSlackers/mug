@@ -25,7 +25,8 @@ describe('POST /api/pins', () => {
       memo: '公園のベンチ',
       createdAt: '2026-11-17T12:00:00+09:00',
     });
-    expect(res.body.pinId).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+    // pinId は cell-ULID の形（docs/adr/feature-api-social.md）
+    expect(res.body.pinId).toMatch(/^[0-9b-hjkmnp-z]{4}-[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(JSON.stringify(res.body)).not.toContain(SUB);
     expect(JSON.stringify(res.body)).not.toContain('こまつ');
 
@@ -35,6 +36,7 @@ describe('POST /api/pins', () => {
     expect(saved).toMatchObject({ userId: SUB, cityCode: '13101', commentCount: 0, reactions: {} });
     expect(saved.cell).toBe(encodeGeohash(saved.lat, saved.lng));
     expect(saved.sk).toBe(`${saved.createdAt}#${saved.pinId}`);
+    expect(res.body.pinId).toBe(`${saved.cell}-${saved.pinId}`); // DB の pinId は ULID のまま
     expect({ lat: saved.lat, lng: saved.lng }).toEqual({ lat: res.body.lat, lng: res.body.lng });
   });
 
@@ -195,9 +197,14 @@ describe('GET /api/pins', () => {
     const res = await call(handler, get(RANGE));
     expect(res.status).toBe(200);
     expect(res.body.truncated).toBe(false);
-    expect(res.body.pins.map((p: { pinId: string }) => p.pinId)).toEqual(['PIN00003', 'PIN00002', 'PIN00001']);
+    const id = (n: number, lat: number, lng: number) => `${encodeGeohash(lat, lng)}-PIN0000${n}`;
+    expect(res.body.pins.map((p: { pinId: string }) => p.pinId)).toEqual([
+      id(3, 35.7, 139.7),
+      id(2, 35.61, 139.84),
+      id(1, 35.68, 139.76),
+    ]);
     expect(res.body.pins[0]).toEqual({
-      pinId: 'PIN00003',
+      pinId: id(3, 35.7, 139.7),
       lat: 35.7,
       lng: 139.7,
       city: '東京都千代田区',
@@ -217,7 +224,7 @@ describe('GET /api/pins', () => {
     const res = await call(handler, get(RANGE));
     expect(res.body.pins).toHaveLength(200);
     expect(res.body.truncated).toBe(true);
-    expect(res.body.pins[0].pinId).toBe('PIN00204');
+    expect(res.body.pins[0].pinId).toMatch(/-PIN00204$/);
   });
 
   test('0.5度ちょうどの範囲はOK（小数の誤差で弾かない）。Query は12回以内', async () => {

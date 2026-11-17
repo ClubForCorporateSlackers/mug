@@ -16,3 +16,11 @@ export function ulid(now: number = Date.now()): string {
   for (let i = 0; i < 16; i++) rand += CROCKFORD[bytes[i] & 31];
   return time + rand;
 }
+
+// ULID の先頭10文字から作成時刻（ミリ秒）を取り出す（ulid() の逆）。形が正しくなければ undefined
+export function decodeUlidTime(id: string): number | undefined {
+  if (!/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(id)) return undefined;
+  let t = 0;
+  for (const ch of id.slice(0, 10)) t = t * 32 + CROCKFORD.indexOf(ch);
+  return t;
+}

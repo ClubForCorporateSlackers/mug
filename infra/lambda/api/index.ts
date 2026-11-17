@@ -1,6 +1,7 @@
 import type { LambdaFunctionURLEvent, LambdaFunctionURLResult } from 'aws-lambda';
 import { createHandler } from './app';
 import { createCognitoVerifier } from './auth';
+import { createDynamoCommentsRepo } from './comments';
 import { createGsiGeocoder } from './geocoder';
 import { createDynamoPinsRepo, createDynamoRankingsRepo } from './pins';
 import { createDynamoUsersRepo } from './users';
@@ -23,6 +24,7 @@ export const handler = async (event: LambdaFunctionURLEvent): Promise<LambdaFunc
     users: createDynamoUsersRepo(requireEnv('USERS_TABLE_NAME')),
     pins: createDynamoPinsRepo(requireEnv('PINS_TABLE_NAME')),
     rankings: createDynamoRankingsRepo(requireEnv('RANKINGS_TABLE_NAME')),
+    comments: createDynamoCommentsRepo(requireEnv('COMMENTS_TABLE_NAME')),
     reverseGeocode: createGsiGeocoder(),
   });
   return app(event);

@@ -1,6 +1,7 @@
 import { type Bounds, cellsForBounds, encodeGeohash, jitter, type Random } from './geo';
 import type { ReverseGeocode } from './geocoder';
 import { ApiError, nowJst } from './http';
+import { toPublicPinId } from './pin-id';
 import type { PinItem, PinSummary, PinsRepo, RankingsRepo } from './pins';
 import { ulid } from './ulid';
 import type { UserItem, UsersRepo } from './users';
@@ -82,9 +83,10 @@ export function validateBounds(query: Record<string, string | undefined> | undef
 
 // ---- 返す形（匿名：userId・ニックネームは返さない） ----
 
+// pinId は cell を含めた形（例：xn76-01JD…）にする。コメント・スタンプのAPIで Pins のキーを作るため（pin-id.ts）
 export function toPinResponse(p: PinSummary) {
   return {
-    pinId: p.pinId,
+    pinId: toPublicPinId(p.cell, p.pinId),
     lat: p.lat,
     lng: p.lng,
     city: p.city,

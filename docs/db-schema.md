@@ -55,7 +55,7 @@ GSIは使わない（ユニットを節約するため、ランキングは件�
 {
   "cell": "xn76",                // ずらした位置のgeohash（4文字＝経度0.35度×緯度0.18度、日本付近で約32km×20km。decisions.md #25）
   "sk": "2026-11-16T10:30:00+09:00#01JD…",   // 日時#pinId（新しい順に並べるため）
-  "pinId": "01JD…",
+  "pinId": "01JD…",               // ULID。APIでは cell を付けた「xn76-01JD…」の形で見せる（api-spec.md）
   "lat": 35.6815,                // ずらした後の緯度
   "lng": 139.7668,               // ずらした後の経度
   "city": "東京都千代田区",
@@ -75,7 +75,7 @@ GSIは使わない（ユニットを節約するため、ランキングは件�
 
 ```json
 {
-  "pinId": "01JD…",
+  "pinId": "01JD…",              // ピンの ULID（APIの pinId から「cell-」を除いたもの）
   "sk": "2026-11-16T11:00:00+09:00#01JE…",   // 日時#commentId（古い順に並べるため）
   "commentId": "01JE…",
   "userId": "d4e5f6…",
@@ -123,7 +123,8 @@ GSIは使わない（ユニットを節約するため、ランキングは件�
 | プロフィール登録 | Users 1件 | なし |
 | ピンを立てる | Pins 1件＋Rankings 3件＋Users 1件（`pinCount` を1増やす） | Users 1件（ニックネーム・血液型を確認） |
 | 地図を開く | なし | Pins（範囲内のcell数ぶんQuery） |
-| コメントする | Comments 1件＋Pins 1件（件数） | Users 1件 |
+| コメントする | Pins 1件（件数。ピンがなければ404）→ Comments 1件 | Users 1件 |
+| コメント一覧 | なし | Pins 1件（あるかの確認）＋Comments 1回Query（最大100件） |
 | スタンプを押す | Reactions 1件＋Pins 1件（件数） | Users 1件 |
 | ランキングを見る | なし | Rankings 1回Query |
 

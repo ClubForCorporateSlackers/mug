@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import type { PinKey } from './pin-id';
 
 // Pins・Rankings テーブル（docs/db-schema.md）の読み書き。
 
@@ -19,13 +20,17 @@ export type PinItem = {
   createdAt: string;
 };
 
-// 地図に返すために読む項目（userId・cityCode は読まない）
-export type PinSummary = Omit<PinItem, 'cell' | 'userId' | 'cityCode'>;
+// 地図に返すために読む項目（userId・cityCode は読まない）。cell はAPIの pinId を作るのに使う
+export type PinSummary = Omit<PinItem, 'userId' | 'cityCode'>;
 
 export type PinsRepo = {
   put(item: PinItem): Promise<void>;
   // 1つの cell を新しい順に最大 limit 件。hasMore は、まだ古いものが残っているか
   queryCell(cell: string, limit: number): Promise<{ items: PinSummary[]; hasMore: boolean }>;
+  // ピンがあるか（コメント一覧の 404 用）
+  exists(key: PinKey): Promise<boolean>;
+  // commentCount を1増やす。ピンがなければ false（何も書かない）
+  incrementCommentCount(key: PinKey): Promise<boolean>;
 };
 
 export type RankingKind = 'user' | 'city' | 'blood';
@@ -35,7 +40,16 @@ export type RankingsRepo = {
 };
 
 // 読む項目。予約語とぶつからないよう、すべて #名前 で指定する
-const SUMMARY_FIELDS = ['sk', 'pinId', 'lat', 'lng', 'city', 'stamp', 'memo', 'commentCount', 'reactions', 'createdAt'];
+const SUMMARY_FIELDS = ['cell', 'sk', 'pinId', 'lat', 'lng', 'city', 'stamp', 'memo', 'commentCount', 'reactions', 'createdAt'];
+
+// 条件付きの書き込みで、条件に合わなかったときのエラーか
+export function isConditionFailed(e: unknown): boolean {
+  return e instanceof Error && e.name === 'ConditionalCheckFailedException';
+}
+
+function pinKey(key: PinKey) {
+  return { cell: key.cell, sk: key.sk };
+}
 
 function docClient() {
   return DynamoDBDocumentClient.from(new DynamoDBClient({}), {
@@ -65,6 +79,30 @@ export function createDynamoPinsRepo(tableName: string): PinsRepo {
         }),
       );
       return { items: (res.Items ?? []) as PinSummary[], hasMore: res.LastEvaluatedKey !== undefined };
+    },
+    async exists(key) {
+      const res = await db.send(
+        new GetCommand({ TableName: tableName, Key: pinKey(key), ProjectionExpression: 'pinId' }),
+      );
+      return res.Item !== undefined;
+    },
+    async incrementCommentCount(key) {
+      try {
+        await db.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: pinKey(key),
+            UpdateExpression: 'ADD commentCount :one',
+            // ピンがないときに項目を作ってしまわないよう、あるときだけ増やす
+            ConditionExpression: 'attribute_exists(pinId)',
+            ExpressionAttributeValues: { ':one': 1 },
+          }),
+        );
+        return true;
+      } catch (e) {
+        if (isConditionFailed(e)) return false;
+        throw e;
+      }
     },
   };
 }
