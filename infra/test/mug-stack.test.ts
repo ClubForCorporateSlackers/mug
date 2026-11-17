@@ -126,6 +126,6 @@ test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ
     [idOf('Comments')!]: ['dynamodb:PutItem', 'dynamodb:Query'],
     // DeleteItem はスタンプの取り消しだけに使う
     [idOf('Reactions')!]: ['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem'],
-    [idOf('Rankings')!]: ['dynamodb:UpdateItem'],
+    [idOf('Rankings')!]: ['dynamodb:Query', 'dynamodb:UpdateItem'],
   });
 });

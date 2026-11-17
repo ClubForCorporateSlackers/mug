@@ -79,3 +79,19 @@ test('commentCount は条件付きの ADD。ピンがなければ false', async 
   send.mockRejectedValueOnce(err as never);
   expect(await repo.incrementCommentCount(KEY)).toBe(false);
 });
+
+test('ランキングの取得は pk=月#種類 の Query 1回（Limit 付き）', async () => {
+  const send = jest
+    .spyOn(DynamoDBDocumentClient.prototype, 'send')
+    .mockResolvedValue({ Items: [{ key: 'A', label: 'A型', count: 2 }] } as never);
+  const res = await createDynamoRankingsRepo('RankingsTable').list('2026-11', 'blood', 1000);
+  expect(res).toEqual([{ key: 'A', label: 'A型', count: 2 }]);
+  const command = send.mock.calls[0][0] as QueryCommand;
+  expect(command).toBeInstanceOf(QueryCommand);
+  expect(command.input).toMatchObject({
+    TableName: 'RankingsTable',
+    KeyConditionExpression: '#pk = :pk',
+    ExpressionAttributeValues: { ':pk': '2026-11#blood' },
+    Limit: 1000,
+  });
+});

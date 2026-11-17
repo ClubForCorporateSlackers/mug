@@ -36,9 +36,12 @@ export type PinsRepo = {
 };
 
 export type RankingKind = 'user' | 'city' | 'blood';
+export type RankingEntry = { key: string; label: string; count: number };
 export type RankingsRepo = {
   // その月の件数を1増やす（なければ1から）。label は最新の表示名で上書きする
   increment(month: string, kind: RankingKind, key: string, label: string): Promise<void>;
+  // その月・種類の件数を最大 limit 件読む（並びは key 順。件数の順に並べるのは呼ぶ側）
+  list(month: string, kind: RankingKind, limit: number): Promise<RankingEntry[]>;
 };
 
 // 読む項目。予約語とぶつからないよう、すべて #名前 で指定する
@@ -134,6 +137,19 @@ export function createDynamoRankingsRepo(tableName: string): RankingsRepo {
           ExpressionAttributeValues: { ':label': label, ':one': 1 },
         }),
       );
+    },
+    async list(month, kind, limit) {
+      const res = await db.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: '#pk = :pk',
+          ExpressionAttributeNames: { '#pk': 'pk', '#key': 'key', '#label': 'label', '#count': 'count' },
+          ExpressionAttributeValues: { ':pk': `${month}#${kind}` },
+          ProjectionExpression: '#key, #label, #count',
+          Limit: limit,
+        }),
+      );
+      return (res.Items ?? []) as RankingEntry[];
     },
   };
 }

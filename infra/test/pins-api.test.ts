@@ -152,6 +152,7 @@ describe('POST /api/pins', () => {
           increment: async () => {
             throw new Error('ProvisionedThroughputExceededException');
           },
+          list: async () => [],
         },
       },
     });

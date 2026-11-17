@@ -4,6 +4,7 @@ import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } 
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
 import { createPin, listPins, type PinDeps } from './pin-api';
+import { getRanking } from './ranking-api';
 import { type ReactionDeps, setReaction } from './reaction-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
@@ -45,6 +46,9 @@ const routes: Record<string, Route> = {
 
   // 地図の範囲内のピン（ログイン不要）
   'GET /api/pins': async (event, deps) => json(200, await listPins(event.queryStringParameters, deps)),
+
+  // ランキング（ログイン不要）
+  'GET /api/rankings': async (event, deps) => json(200, await getRanking(event.queryStringParameters, deps)),
 };
 
 // パスに値（{pinId} など）が入るAPI。[メソッド, パスの形, 処理]。( ) の部分が params に入る

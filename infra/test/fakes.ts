@@ -117,6 +117,14 @@ export function setup(
         const k = `${month}#${kind}|${key}`;
         rankings.set(k, { label, count: (rankings.get(k)?.count ?? 0) + 1 });
       },
+      async list(month, kind, limit) {
+        const prefix = `${month}#${kind}|`;
+        return [...rankings]
+          .filter(([k]) => k.startsWith(prefix))
+          .map(([k, v]) => ({ key: k.slice(prefix.length), ...v }))
+          .sort((a, b) => (a.key < b.key ? -1 : 1)) // 本物と同じく key の順
+          .slice(0, limit);
+      },
     },
     reverseGeocode: async (lat, lng) => {
       geocodeCalls.push({ lat, lng });
