@@ -98,12 +98,13 @@ test('Lambda に Cognito の ID とテーブル名を環境変数で渡す', () 
         PINS_TABLE_NAME: Match.anyValue(),
         RANKINGS_TABLE_NAME: Match.anyValue(),
         COMMENTS_TABLE_NAME: Match.anyValue(),
+        REACTIONS_TABLE_NAME: Match.anyValue(),
       },
     },
   });
 });
 
-test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ（Scan・Delete・ワイルドカードなし）', () => {
+test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ（Scan・ワイルドカードなし）', () => {
   const tableIds = Object.keys(template.findResources('AWS::DynamoDB::Table'));
   const idOf = (name: string) => tableIds.find((id) => id.startsWith(`${name}Table`));
   const dynamoStatements = Object.values(template.findResources('AWS::IAM::Policy'))
@@ -123,6 +124,8 @@ test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ
     [idOf('Users')!]: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
     [idOf('Pins')!]: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:UpdateItem'],
     [idOf('Comments')!]: ['dynamodb:PutItem', 'dynamodb:Query'],
+    // DeleteItem はスタンプの取り消しだけに使う
+    [idOf('Reactions')!]: ['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem'],
     [idOf('Rankings')!]: ['dynamodb:UpdateItem'],
   });
 });

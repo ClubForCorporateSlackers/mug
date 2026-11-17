@@ -31,6 +31,8 @@ export type PinsRepo = {
   exists(key: PinKey): Promise<boolean>;
   // commentCount を1増やす。ピンがなければ false（何も書かない）
   incrementCommentCount(key: PinKey): Promise<boolean>;
+  // スタンプの件数（書いた直後の値を読む）。ピンがなければ undefined
+  getReactions(key: PinKey): Promise<Record<string, number> | undefined>;
 };
 
 export type RankingKind = 'user' | 'city' | 'blood';
@@ -103,6 +105,18 @@ export function createDynamoPinsRepo(tableName: string): PinsRepo {
         if (isConditionFailed(e)) return false;
         throw e;
       }
+    },
+    async getReactions(key) {
+      const res = await db.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: pinKey(key),
+          ProjectionExpression: 'pinId, reactions',
+          ConsistentRead: true, // スタンプを押した直後の件数を返すため（読み込みは1件で1ユニット）
+        }),
+      );
+      if (!res.Item) return undefined;
+      return (res.Item.reactions ?? {}) as Record<string, number>;
     },
   };
 }

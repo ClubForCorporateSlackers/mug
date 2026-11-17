@@ -4,12 +4,14 @@ import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } 
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
 import { createPin, listPins, type PinDeps } from './pin-api';
+import { type ReactionDeps, setReaction } from './reaction-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
 // 注意：event をそのまま console.log しない（ピンのAPIで元の座標が入るため。トークンも入っている）。
 
 export type Deps = PinDeps &
-  CommentDeps & {
+  CommentDeps &
+  ReactionDeps & {
     verifyIdToken: VerifyIdToken;
   };
 
@@ -56,6 +58,23 @@ const paramRoutes: [string, RegExp, Route][] = [
     async (event, deps, [pinId]) => {
       const userId = await requireUserId(event, deps.verifyIdToken);
       return json(201, await createComment(userId, pinId, parseJsonBody(event), deps));
+    },
+  ],
+  // スタンプを押す・取り消す（ログイン必須・プロフィール必須）。本文はなし
+  [
+    'PUT',
+    /^\/api\/pins\/([^/]+)\/reactions\/([^/]+)$/,
+    async (event, deps, [pinId, type]) => {
+      const userId = await requireUserId(event, deps.verifyIdToken);
+      return json(200, await setReaction(userId, pinId, type, true, deps));
+    },
+  ],
+  [
+    'DELETE',
+    /^\/api\/pins\/([^/]+)\/reactions\/([^/]+)$/,
+    async (event, deps, [pinId, type]) => {
+      const userId = await requireUserId(event, deps.verifyIdToken);
+      return json(200, await setReaction(userId, pinId, type, false, deps));
     },
   ],
 ];

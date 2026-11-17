@@ -196,7 +196,11 @@ GET /api/pins?minLat=35.60&maxLat=35.75&minLng=139.65&maxLng=139.85
 ### 8. DELETE /api/pins/{pinId}/reactions/{type} 🔒 スタンプを取り消す
 
 - 送るものはなし（URLに `pinId` とスタンプの種類を入れる）
-- 1人が同じスタンプを押せるのは1回まで。もう一度PUTしても件数は増えない
+- `type` は `odaiji`／`kaite`／`wakaru` だけ（ピンを立てるときの `kayui`・`itai` は 400）
+- 1人が同じスタンプを押せるのは1回まで。もう一度PUTしても件数は増えない（200で今の状態を返す）。押していないものをDELETEしても件数は減らない（200）
+- チェックの順番：ログイン（401）→ `pinId` の形（404）→ 種類（400）→ プロフィール登録済みか（403 `PROFILE_REQUIRED`、DELETEも同じ）→ ピンがあるか（404）
+- `reactions` は押した直後の件数。0件の種類は含めない（`GET /api/pins` の `reactions` も同じ）
+- `myReactions` は自分が押しているもの（`odaiji`・`kaite`・`wakaru` の順）
 
 **返すもの（200）**
 ```json

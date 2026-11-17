@@ -3,6 +3,7 @@ import { createHandler, type Deps } from '../lambda/api/app';
 import type { CommentItem } from '../lambda/api/comments';
 import type { City } from '../lambda/api/geocoder';
 import type { PinItem, PinSummary } from '../lambda/api/pins';
+import { reactionSk, type ReactionItem } from '../lambda/api/reactions';
 import type { UserItem } from '../lambda/api/users';
 
 // テスト用の偽物（メモリ上の DB・地理院API）。本物の AWS や国土地理院にはつながない。
@@ -16,6 +17,7 @@ export function setup(
   const store = new Map((opts.users ?? []).map((u) => [u.userId, { ...u }]));
   const pinStore: PinItem[] = (opts.pins ?? []).map((p) => ({ ...p, reactions: { ...p.reactions } }));
   const commentStore: CommentItem[] = [...(opts.comments ?? [])];
+  const reactionStore = new Map<string, ReactionItem>(); // キー：pinId|sk
   const findPin = (key: { cell: string; sk: string }) => pinStore.find((p) => p.cell === key.cell && p.sk === key.sk);
   const rankings = new Map<string, { label: string; count: number }>();
   const geocodeCalls: { lat: number; lng: number }[] = [];
@@ -70,6 +72,33 @@ export function setup(
         p.commentCount += 1;
         return true;
       },
+      async getReactions(key) {
+        const p = findPin(key);
+        return p ? { ...p.reactions } : undefined;
+      },
+    },
+    // 本物のトランザクションと同じく、ピンがないか条件に合わなければ何も書かない
+    reactions: {
+      async add(key, item) {
+        const p = findPin(key);
+        if (!p) return 'no-pin';
+        const k = `${key.pinId}|${reactionSk(item.type, item.userId)}`;
+        if (reactionStore.has(k)) return 'already';
+        reactionStore.set(k, { pinId: key.pinId, sk: reactionSk(item.type, item.userId), ...item });
+        p.reactions[item.type] = (p.reactions[item.type] ?? 0) + 1;
+        return 'added';
+      },
+      async remove(key, type, userId) {
+        const p = findPin(key);
+        if (!p) return 'no-pin';
+        const k = `${key.pinId}|${reactionSk(type, userId)}`;
+        if (!reactionStore.delete(k)) return 'absent';
+        p.reactions[type] = (p.reactions[type] ?? 1) - 1;
+        return 'removed';
+      },
+      async has(pinId, type, userId) {
+        return reactionStore.has(`${pinId}|${reactionSk(type, userId)}`);
+      },
     },
     comments: {
       async put(item) {
@@ -101,7 +130,7 @@ export function setup(
     now: () => new Date('2026-11-17T03:00:00Z'), // 日本時間 12:00
     ...opts.overrides,
   };
-  return { handler: createHandler(deps), store, pinStore, commentStore, rankings, geocodeCalls, queriedCells };
+  return { handler: createHandler(deps), store, pinStore, commentStore, reactionStore, rankings, geocodeCalls, queriedCells };
 }
 
 export function event(

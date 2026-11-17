@@ -75,11 +75,12 @@ export class MugStack extends cdk.Stack {
         PINS_TABLE_NAME: tables.Pins.tableName,
         RANKINGS_TABLE_NAME: tables.Rankings.tableName,
         COMMENTS_TABLE_NAME: tables.Comments.tableName,
+        REACTIONS_TABLE_NAME: tables.Reactions.tableName,
       },
     });
 
     // DynamoDB の権限は、テーブルごとに使う操作だけを許可する（Scan・Delete などは許可しない）。
-    // 他のテーブル（Reactions）は、そのAPIを作るときに必要な操作だけを足す。
+    // トランザクション（TransactWriteItems）は専用の権限がなく、中の書き込みごとの権限（PutItem など）で許可される。
     // Users：プロフィールの取得・登録、pinCount を増やす
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
@@ -88,7 +89,7 @@ export class MugStack extends cdk.Stack {
       }),
     );
     // Pins：ピンの保存（PutItem）、地図の範囲の取得（Query）、
-    // コメント一覧でピンがあるかの確認（GetItem）、commentCount を増やす（UpdateItem）
+    // ピンがあるかの確認とスタンプの件数の読み出し（GetItem）、commentCount・reactions の増減（UpdateItem）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:UpdateItem'],
@@ -100,6 +101,13 @@ export class MugStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ['dynamodb:PutItem', 'dynamodb:Query'],
         resources: [tables.Comments.tableArn],
+      }),
+    );
+    // Reactions：押す（PutItem）、取り消す（DeleteItem）、自分が押したかの確認（GetItem）
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:GetItem'],
+        resources: [tables.Reactions.tableArn],
       }),
     );
     // Rankings：件数を増やす（UpdateItem の ADD）。読むのはランキングのAPI（5-3）で足す

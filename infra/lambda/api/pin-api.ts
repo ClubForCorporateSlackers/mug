@@ -83,6 +83,11 @@ export function validateBounds(query: Record<string, string | undefined> | undef
 
 // ---- 返す形（匿名：userId・ニックネームは返さない） ----
 
+// スタンプの件数のうち、0件の種類は返さない（取り消して0になったものを含む）
+export function nonZeroReactions(r: Record<string, number> | undefined): Record<string, number> {
+  return Object.fromEntries(Object.entries(r ?? {}).filter(([, n]) => n > 0));
+}
+
 // pinId は cell を含めた形（例：xn76-01JD…）にする。コメント・スタンプのAPIで Pins のキーを作るため（pin-id.ts）
 export function toPinResponse(p: PinSummary) {
   return {
@@ -94,7 +99,7 @@ export function toPinResponse(p: PinSummary) {
     memo: p.memo ?? '',
     createdAt: p.createdAt,
     commentCount: p.commentCount ?? 0,
-    reactions: p.reactions ?? {},
+    reactions: nonZeroReactions(p.reactions),
   };
 }
 
