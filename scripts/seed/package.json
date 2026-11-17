@@ -1,0 +1,25 @@
+{
+  "name": "mug-seed",
+  "private": true,
+  "type": "module",
+  "description": "デモ用のダミーデータを本物のAPIで入れる・片付けるスクリプト（scripts/seed/README.md）",
+  "scripts": {
+    "check": "tsx check.ts",
+    "places": "tsx places.ts",
+    "seed": "tsx seed.ts",
+    "cleanup": "tsx cleanup.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.1170.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1170.0",
+    "@aws-sdk/client-dynamodb": "^3.1170.0",
+    "@aws-sdk/client-sts": "^3.1170.0",
+    "@aws-sdk/lib-dynamodb": "^3.1170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
