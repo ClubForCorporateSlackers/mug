@@ -46,8 +46,9 @@ export class MugStack extends cdk.Stack {
       generateSecret: false, // ブラウザから使うのでクライアントシークレットなし
       authFlows: {
         userSrp: true, // 画面からのログイン（パスワードをそのまま送らない方式）
-        // テスト用：AWSの管理者の認証情報で admin-initiate-auth を使い、IDトークンを取る。
-        // ブラウザからは使えない。提出前に不要なら外す（docs/adr/feature-api-me.md）
+        // テスト用・ダミーデータの投入用（scripts/seed/）：AWSの管理者の認証情報で admin-initiate-auth を使い、IDトークンを取る。
+        // 使えるのは管理者の権限がある人だけで、ブラウザからは使えない。外さない（ハッカソン後の cdk destroy で一緒に消える）
+        // （docs/adr/feature-api-me.md）
         adminUserPassword: true,
       },
       preventUserExistenceErrors: true,
