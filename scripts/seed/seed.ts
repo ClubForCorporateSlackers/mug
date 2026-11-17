@@ -10,7 +10,7 @@ import { loadStack, pacer } from './lib/aws.ts';
 import { ensureUserAndLogin } from './lib/cognito.ts';
 import { rand, randomPointIn } from './lib/geo.ts';
 import { readState, STATE_PATH, writeState } from './lib/state.ts';
-import { config, type SeedUser } from './seed.config.ts';
+import { config, type Place, type SeedUser } from './seed.config.ts';
 
 const args = new Set(process.argv.slice(2));
 const REACTION_TYPES = ['odaiji', 'kaite', 'wakaru'] as const;
@@ -31,6 +31,14 @@ function pickWeighted(users: SeedUser[]): SeedUser {
   for (const u of users) if ((r -= u.pinWeight) < 0) return u;
   return users[users.length - 1];
 }
+// ピンを立てる人：ふだんはその地域に住んでいる人から、travelerRatio の割合でほかの地域の人（旅行・出張）から選ぶ
+function pickOwner(place: Place): SeedUser {
+  const locals = config.users.filter((u) => u.home === place.region);
+  const others = config.users.filter((u) => u.home !== place.region);
+  if (locals.length === 0) return pickWeighted(config.users);
+  if (others.length > 0 && rand() < config.travelerRatio) return pickWeighted(others);
+  return pickWeighted(locals);
+}
 function randomStamp(): 'kayui' | 'itai' | null {
   const r = rand();
   if (r < config.stampRatio.kayui) return 'kayui';
@@ -46,6 +54,18 @@ async function main() {
   console.log(`入れるもの：ユーザー ${users.length}人、ピン ${totalPins}件（${config.places.length}か所）`);
   console.log(`  コメントを付けるピン 約${commentPins}件、リアクションを付けるピン 約${reactionPins}件`);
   console.log(`  API：${config.apiBase}　書き込みの間隔：${config.writeIntervalMs}ms`);
+
+  // どこに・誰がピンを立てるかを先に決める（場所を混ぜた順に。時刻が場所ごとに固まらないように）
+  const plan = shuffle(config.places.flatMap((p) => Array.from({ length: p.pins }, () => p))).map((place) => ({
+    place,
+    owner: pickOwner(place),
+  }));
+  console.log('  1人あたりのピン（今回の割り当て。実行のたびに変わる）：');
+  for (const u of users) {
+    const mine = plan.filter((x) => x.owner === u);
+    const away = mine.filter((x) => x.place.region !== u.home).length;
+    console.log(`    ${u.nickname}（${u.bloodType}型・${u.home}）：${mine.length}件${away ? `（うち地域の外 ${away}件）` : ''}`);
+  }
 
   const state = readState();
   if (state.pins.length > 0 && !args.has('--append')) {
@@ -73,11 +93,9 @@ async function main() {
     console.log(`ユーザー ${user.email}（${user.nickname}）：${created ? '作成' : 'すでにある'}、プロフィール登録済み`);
   }
 
-  // 2. ピンを立てる（場所を混ぜた順に。時刻が場所ごとに固まらないように）
-  const plan = shuffle(config.places.flatMap((p) => Array.from({ length: p.pins }, () => p)));
+  // 2. ピンを立てる（上で決めた順・人で）
   const created: { pinId: string; ownerEmail: string }[] = [];
-  for (const [i, place] of plan.entries()) {
-    const owner = pickWeighted(users);
+  for (const [i, { place, owner }] of plan.entries()) {
     const point = randomPointIn(place); // 送る前の座標はログに出さない
     const memo = rand() < config.memoEmptyRatio ? '' : pick(config.memos);
     await pace();
