@@ -8,8 +8,9 @@
 import { callApi } from './lib/api.ts';
 import { loadStack, pacer } from './lib/aws.ts';
 import { ensureUserAndLogin } from './lib/cognito.ts';
-import { rand, randomPointIn } from './lib/geo.ts';
+import { nowJst, rand, randomPointIn } from './lib/geo.ts';
 import { readState, STATE_PATH, writeState } from './lib/state.ts';
+import { compare, type Kind, snapshot } from './lib/verify.ts';
 import { config, type Place, type SeedUser } from './seed.config.ts';
 
 const args = new Set(process.argv.slice(2));
@@ -93,7 +94,12 @@ async function main() {
     console.log(`ユーザー ${user.email}（${user.nickname}）：${created ? '作成' : 'すでにある'}、プロフィール登録済み`);
   }
 
-  // 2. ピンを立てる（上で決めた順・人で）
+  // 2. ピンを立てる（上で決めた順・人で）。前後でランキングを読み、件数の増え方が合うかを確かめる
+  const month = nowJst(new Date()).slice(0, 7);
+  const before = await snapshot(month);
+  const expected: Record<Kind, Map<string, number>> = { user: new Map(), city: new Map(), blood: new Map() };
+  const add = (kind: Kind, label: string) => expected[kind].set(label, (expected[kind].get(label) ?? 0) + 1);
+
   const created: { pinId: string; ownerEmail: string }[] = [];
   for (const [i, { place, owner }] of plan.entries()) {
     const point = randomPointIn(place); // 送る前の座標はログに出さない
@@ -108,7 +114,27 @@ async function main() {
     state.pins.push({ pinId: pin.pinId, ownerEmail: owner.email });
     writeState(state); // 途中で止まっても片付けられるよう、1件ごとに記録する
     console.log(`ピン ${i + 1}/${plan.length}：${place.name} → ${pin.city}`);
+    // サーバーがランキングに足すはずのもの（pin-api.ts と同じ。市町村の「不明」は数えない）
+    add('user', owner.nickname);
+    add('blood', `${owner.bloodType}型`);
+    if (pin.city !== '不明') add('city', pin.city);
   }
+
+  const warnings: string[] = [];
+  if (nowJst(new Date()).slice(0, 7) !== month) {
+    warnings.push('投入中に月が変わったので、ランキングの件数は確かめられませんでした');
+  } else {
+    const { mismatches, unchecked } = compare(before, await snapshot(month), expected);
+    if (mismatches.length > 0) {
+      warnings.push('ランキングの件数が、入れたピンと合いません（件数の加算に失敗したか、投入中に本物の投稿があった可能性）：');
+      warnings.push(...mismatches.map((m) => `  ${m}`));
+      warnings.push('  → このまま片付けると、本物の利用者の件数まで減らすことがあります。デモの前なら「片付けてから入れ直す」をおすすめします');
+    } else {
+      console.log('ランキングの件数：入れたピンと合っています');
+    }
+    if (unchecked.length > 0) console.log(`  （上位20件に入らず確かめられなかったもの：${unchecked.join('、')}）`);
+  }
+  for (const w of warnings) console.warn(`警告：${w}`);
 
   // 3. ほかのユーザーからのコメント
   let commentCount = 0;
@@ -137,6 +163,11 @@ async function main() {
 
   const sec = Math.round((Date.now() - started) / 1000);
   console.log(`\n終わりました（${Math.floor(sec / 60)}分${sec % 60}秒）。記録：${STATE_PATH}`);
+  if (warnings.length > 0) {
+    console.warn('\n※ 警告があります（もう一度表示します）');
+    for (const w of warnings) console.warn(`警告：${w}`);
+    process.exitCode = 2; // 入れることはできたが、確かめた結果が合わなかった
+  }
 }
 
 main().catch((e: unknown) => {
