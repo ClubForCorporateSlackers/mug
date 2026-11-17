@@ -40,10 +40,14 @@ GSIは使わない（ユニットを節約するため、ランキングは件�
   "userId": "a1b2c3…",          // CognitoのID（sub）
   "nickname": "こまつ",
   "bloodType": "A",              // A / B / O / AB / UNKNOWN
+  "pinCount": 3,                 // 立てたピンの数（GET /api/me で返す）
   "createdAt": "2026-11-16T10:00:00+09:00",
   "updatedAt": "2026-11-16T10:00:00+09:00"
 }
 ```
+
+- `pinCount`：プロフィール登録（PUT /api/me）のときに `0` を入れる。変更のときは 0 に戻さない（`if_not_exists`）。ピンを立てるたびに `ADD pinCount 1` で増やす
+- `pinCount` ができる前に登録した人には、この項目がない。その場合 API は `0` として返し、次にピンを立てたとき（`ADD` はない項目にも使える）か、プロフィールを変更したときに入る
 
 ### Pins
 
@@ -114,13 +118,13 @@ GSIは使わない（ユニットを節約するため、ランキングは件�
 | 操作 | 書き込み | 読み込み |
 |---|---|---|
 | プロフィール登録 | Users 1件 | なし |
-| ピンを立てる | Pins 1件＋Rankings 3件 | Users 1件（ニックネーム・血液型を確認） |
+| ピンを立てる | Pins 1件＋Rankings 3件＋Users 1件（`pinCount` を1増やす） | Users 1件（ニックネーム・血液型を確認） |
 | 地図を開く | なし | Pins（範囲内のcell数ぶんQuery） |
 | コメントする | Comments 1件＋Pins 1件（件数） | Users 1件 |
 | スタンプを押す | Reactions 1件＋Pins 1件（件数） | Users 1件 |
 | ランキングを見る | なし | Rankings 1回Query |
 
-ピンを立てる操作は**書き込み4件**。Pins（3）とRankings（5）のユニットで、平常時でも1秒に1件程度は問題なく処理できる。
+ピンを立てる操作は**書き込み5件**（Pins 1・Rankings 3・Users 1）。Pins（3）・Rankings（5）・Users（2）のユニットで、平常時でも1秒に1件程度は問題なく処理できる。
 
 ---
 

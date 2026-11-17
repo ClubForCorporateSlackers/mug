@@ -1,7 +1,7 @@
 # ADR：feature/api-me
 
 - ブランチ：`feature/api-me`
-- 作業の内容：プロフィールAPI（`GET /api/me`・`PUT /api/me`）を作る。IDトークンの検証、Users テーブルの読み書き、テスト用のトークン取得の準備を含む（作業途中のコミット c98331c）
+- 作業の内容：プロフィールAPI（`GET /api/me`・`PUT /api/me`）を作る。IDトークンの検証、Users テーブルの読み書き（`pinCount` を含む）、テスト用のトークン取得の準備を含む（作業途中のコミット c98331c ほか）
 - 進捗表のID：4-1
 - 期間：2026-11-17 〜（作業中）
 - 記録した者：Claude Code
@@ -20,7 +20,7 @@
 
 小松の了承を得て、アプリクライアントの `authFlows` に `adminUserPassword: true`（ADMIN_USER_PASSWORD_AUTH）を足す。これで、AWS の管理者の認証情報を持つ人が、`aws cognito-idp admin-initiate-auth` で、テスト用ユーザーの IDトークンを取れるようになる。
 
-注意：**コードはまだこのブランチ（4-1）に入れていない。** この記録を作った時点（2026-11-17）では、どのブランチのコミットにも見つからなかった（作業途中のコミット c98331c でも `userSrp: true` だけ）。小松の説明をもとに記録している。コードを入れるときは、このファイルと同じコミットに入れること。
+コードは `infra/lib/mug-stack.ts` に入れた（このブランチ。最初の記録のときは、どのブランチのコミットにもまだなかった）。`infra/test/mug-stack.test.ts` に、ログイン方式が SRP・管理者ログイン・トークン更新の3つだけで、パスワードを直接送る方式（`ALLOW_USER_PASSWORD_AUTH`）がないことを確かめるテストを足した。
 
 ### 理由
 
@@ -37,6 +37,7 @@
 
 - 取ったトークン・テスト用ユーザーのパスワードは、チャット・ログ・リポジトリに残さない（AGENTS.md「秘密情報の扱い」）
 - ハッカソンの提出前に、まだ必要か見直す。不要なら外す
+- `cdk diff` では、アプリクライアントの `ExplicitAuthFlows` の変更として出るはず。CloudFormation では作り直し（Replacement）にならない項目なので、クライアントIDは変わらない見込み。diff に「replace」と出たら、デプロイの前に止めて確認する（クライアントIDが変わると README とフロントの値を直す必要がある）
 
 ---
 
@@ -109,3 +110,66 @@ docs/api-spec.md の `PUT /api/me` は「登録・変更」の両方を受け持
 
 - ピンのAPIを作るときに、Users の `pinCount` を増やす `UpdateItem` と、Pins などの権限を足す
 - `UpdateItem` は「プロフィール未登録の人」の区別をしないので、`GET /api/me` の 404 で判定する
+
+---
+
+## 判断：pinCount はプロフィール登録のときに 0 で入れ、変更では上書きしない。ない人は 0 として返す
+
+- 状態：承認
+
+### 状況（何に迷ったか）
+
+「pinCount を Users に持たせる（GET /api/me で返す。4-2で1増やす前提）」と指示された。docs/db-schema.md の Users にはまだ `pinCount` がなく、いつ・どの値で入れるか、すでに登録した人（項目がない人）をどう扱うかは書かれていなかった。
+
+### 決めたこと
+
+- `PUT /api/me` の UpdateItem に `pinCount = if_not_exists(pinCount, :zero)` を足した。初めての登録では 0 が入り、変更のときは今の値のまま（0 に戻さない）。書き込みは1回のまま
+- `GET /api/me` では、項目がなければ 0 を返す（今までどおり `pinCount ?? 0`）。型（`UserItem`）の `pinCount` も「なくてもよい」のままにした
+- 4-2 では `ADD pinCount 1` で増やす前提にした。`ADD` は項目がなくても 1 から数えられるので、古い人でもずれない
+- docs/db-schema.md の Users の例に `pinCount` を足し、「4. 操作ごとの読み書き」の「ピンを立てる」に Users 1件の書き込みを足した（書き込み4件 → 5件）
+
+### 理由
+
+- 登録の UpdateItem に足すだけなので、書き込みユニットが増えない
+- `SET pinCount = 0` にすると、ニックネームを変えただけで数が 0 に戻ってしまう
+- 項目がない人をまとめて直す処理（Scan して書き込み）は、AGENTS.md の「Scan は使わない」に反するうえ、作業も増える
+
+### ほかの案
+
+- 4-2 で初めて `pinCount` を入れる（登録では入れない）：DB の中身が人によって違う期間が長くなる
+- 型の `pinCount` を必ずある形にする：古い人のデータで、型と中身が合わなくなる
+
+### 影響・あとで見直すこと
+
+- 4-2（POST /api/pins）で、Pins・Rankings と一緒に Users の `pinCount` を `ADD` する。Lambda の権限（Users の UpdateItem）はもうある
+- ピンを消す機能を作る場合は、`pinCount` を減らす処理も要る（今は API にない）
+- Users の書き込みユニットは 2。プロフィール変更とピン投稿が重なると足りなくなることがあるが、ハッカソンの規模なら問題ない見込み
+
+---
+
+## 判断：本物の DynamoDB に送る UpdateItem の中身を確かめるテストを足した
+
+- 状態：承認
+
+### 状況（何に迷ったか）
+
+今までのテスト（`infra/test/api.test.ts`）は、DynamoDB の代わりに偽物（メモリ上）を使う。偽物は `users.ts` の UpdateItem と同じ動きをするように手で書いているので、本物の命令（`if_not_exists` の書き方など）を間違えても、テストは通ってしまう。指示にはテストの追加は書かれていなかった。
+
+### 決めたこと
+
+`infra/test/users.test.ts` を足した。DynamoDB の `send` を差し替えて（`jest.spyOn`）、本物には送らずに、送る命令が UpdateItem 1回で、`createdAt` と `pinCount` が `if_not_exists` になっていることを確かめる。新しいライブラリは入れていない。偽物の DB（`api.test.ts`）も、登録時に `pinCount` を 0 にするように合わせた。
+
+### 理由
+
+- `pinCount` を `SET pinCount = :zero` と書き間違えると、ニックネームの変更で数が 0 に戻る。このまちがいは本番で気づきにくい
+- 命令の中身を見るだけなので、AWS にはつながず、速い
+
+### ほかの案
+
+- `aws-sdk-client-mock` を入れる：書きやすいが、依存が増える
+- DynamoDB Local で本当に動かす：Java か Docker が要り、準備が重い
+
+### 影響・あとで見直すこと
+
+- UpdateExpression の文字列を見ているので、書き方（空白など）を変えるとテストも直す必要がある
+- 4-2 で Pins・Rankings の書き込みを作るときも、同じ形でテストを足せる

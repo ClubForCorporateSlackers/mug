@@ -16,7 +16,16 @@ function setup(initial: UserItem[] = []) {
     },
     async saveProfile(userId, nickname, bloodType, now) {
       const old = store.get(userId);
-      const item: UserItem = { ...old, userId, nickname, bloodType, updatedAt: now, createdAt: old?.createdAt ?? now };
+      // 本物（users.ts の UpdateItem）と同じく、createdAt と pinCount はないときだけ入れる
+      const item: UserItem = {
+        ...old,
+        userId,
+        nickname,
+        bloodType,
+        updatedAt: now,
+        createdAt: old?.createdAt ?? now,
+        pinCount: old?.pinCount ?? 0,
+      };
       store.set(userId, item);
       return item;
     },
@@ -101,6 +110,7 @@ describe('PUT /api/me', () => {
     );
     expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'こまつ', bloodType: 'AB', pinCount: 0 } });
     expect(store.has('hacker')).toBe(false);
+    expect(store.get(SUB)?.pinCount).toBe(0); // 登録のときに pinCount を 0 で持たせる
     expect(store.get(SUB)?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/);
   });
 

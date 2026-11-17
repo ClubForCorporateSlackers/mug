@@ -8,7 +8,9 @@ export type UserItem = {
   bloodType: string;
   createdAt: string;
   updatedAt: string;
-  pinCount?: number; // ピンの投稿（POST /api/pins）を作るときに増やす予定。今はまだない
+  // 立てたピンの数。プロフィール登録のときに 0 を入れ、ピンの投稿（4-2）で ADD pinCount 1 する。
+  // この項目ができる前に登録した人には、まだない（ない場合は 0 として扱う）
+  pinCount?: number;
 };
 
 export type UsersRepo = {
@@ -24,15 +26,17 @@ export function createDynamoUsersRepo(tableName: string): UsersRepo {
       return res.Item as UserItem | undefined;
     },
     // 1回の書き込みで「登録」と「変更」の両方に対応する。
-    // createdAt は初回だけ入れる（if_not_exists）。pinCount など他の項目は消さない（Put ではなく Update）。
+    // createdAt と pinCount は、まだないときだけ入れる（if_not_exists）。
+    // 変更のときに pinCount を 0 に戻さないよう、Put ではなく Update を使う。
     async saveProfile(userId, nickname, bloodType, now) {
       const res = await db.send(
         new UpdateCommand({
           TableName: tableName,
           Key: { userId },
           UpdateExpression:
-            'SET nickname = :n, bloodType = :b, updatedAt = :now, createdAt = if_not_exists(createdAt, :now)',
-          ExpressionAttributeValues: { ':n': nickname, ':b': bloodType, ':now': now },
+            'SET nickname = :n, bloodType = :b, updatedAt = :now, ' +
+            'createdAt = if_not_exists(createdAt, :now), pinCount = if_not_exists(pinCount, :zero)',
+          ExpressionAttributeValues: { ':n': nickname, ':b': bloodType, ':now': now, ':zero': 0 },
           ReturnValues: 'ALL_NEW',
         }),
       );

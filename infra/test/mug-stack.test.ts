@@ -40,6 +40,16 @@ test('Cognito のアプリクライアントはシークレットなし、ユー
   template.hasResource('AWS::Cognito::UserPool', { DeletionPolicy: 'Delete' });
 });
 
+test('Cognito のログイン方式は SRP と（テスト用の）管理者ログインだけ。パスワードを直接送る方式はなし', () => {
+  const clients = Object.values(template.findResources('AWS::Cognito::UserPoolClient'));
+  expect(clients).toHaveLength(1);
+  const flows: string[] = clients[0].Properties.ExplicitAuthFlows;
+  expect(flows).toEqual(
+    expect.arrayContaining(['ALLOW_USER_SRP_AUTH', 'ALLOW_ADMIN_USER_PASSWORD_AUTH', 'ALLOW_REFRESH_TOKEN_AUTH']),
+  );
+  expect(flows).not.toContain('ALLOW_USER_PASSWORD_AUTH');
+});
+
 test('Worker 用 IAM ユーザーは関数URLの呼び出しだけ。アクセスキーは作らない', () => {
   template.resourceCountIs('AWS::IAM::User', 1);
   template.resourceCountIs('AWS::IAM::AccessKey', 0);
