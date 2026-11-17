@@ -26,5 +26,24 @@
     "logs": {
       "invocation_logs": false
     }
+  },
+
+  // プレビュー（npx wrangler preview / Workers Builds のプレビュー）用の設定。
+  // プレビューは本番の設定を引き継がないので、必要なものをここにもう一度書く。
+  // - assets はトップレベルだけに書く（プレビューでも同じものがアップロードされる）
+  // - バックエンドはハッカソンなので本番と同じ関数URLを共用する
+  // - Secrets（AWS のキー）はここに書かない。wrangler preview base-config secret put で登録する
+  "previews": {
+    "vars": {
+      "FUNCTION_URL": "https://r252x4iygtlopqgipa3lfu2brq0kupvv.lambda-url.ap-northeast-1.on.aws/"
+    },
+    // 本番と同じ理由で、自動のリクエスト記録（invocation_logs）を切る。
+    // 引き継がれるかがドキュメントで明記されていないので、はっきり書いておく
+    "observability": {
+      "enabled": true,
+      "logs": {
+        "invocation_logs": false
+      }
+    }
   }
 }

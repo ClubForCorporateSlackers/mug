@@ -28,6 +28,7 @@
 | 21 | 11/16 | 地図の表示は **OpenFreeMap＋MapLibre GL JS**（スタイルは Positron か Liberty。フロント担当が見比べて決める）。市町村の判定は国土地理院のまま | 地理院タイル／OpenFreeMap／CARTO／Google Maps | Google Maps のような簡素な見た目でピンが目立つ。無料で登録もキーも不要。地図と市町村判定はデータ元が違うため、境界ぎわで地図の地名と判定がずれることがある（ランキングは国土地理院の判定に従う） | チーム |
 | 22 | 11/16 | 市町村は国土地理院APIの **muniCd で判定・集計**し、名前は変換表で付ける。取れないとき（海上・API失敗）は「不明」として**投稿は止めない** | 市町村名の文字列で集計 | APIは名前を返さない（コードと町名だけ）。コードなら表記ゆれがない。APIは地理院地図用で外部利用の保証がないため、失敗しても動くようにする | 小松 |
 | 23 | 11/17 | Worker 用 IAMユーザーの権限は、この関数だけを対象に **`lambda:InvokeFunctionUrl`（条件 `lambda:FunctionUrlAuthType = AWS_IAM`）と `lambda:InvokeFunction`（条件 `lambda:InvokedViaFunctionUrl = true`）の2つ** | `InvokeFunctionUrl` だけ（#15） | 2025年10月以降に作った関数URLは、両方の権限がないと 403 になる（公式ドキュメントで確認）。`InvokeFunction` は関数URL経由に限るので、キーで関数を直接呼ぶことはできない | 小松 |
+| 24 | 11/17 | Worker のプレビュー（Workers Builds／`wrangler preview`）は、**本番と同じ関数URL（同じ Lambda・DynamoDB）を共用**する。`wrangler.jsonc` の `previews` ブロックに `vars.FUNCTION_URL` と `invocation_logs: false` を書き、AWS のキーは `wrangler preview base-config secret put` で登録する | 共用／プレビュー用にバックエンドを別に作る | ハッカソンなので環境を2つ持つ手間をかけない。プレビューは本番の設定を引き継がない（公式ドキュメントで確認）ため、`previews` ブロックに書き直す。プレビューから書いたデータは本番のDBに入る点に注意 | 小松 |
 
 ## 未決定
 

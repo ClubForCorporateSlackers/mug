@@ -23,8 +23,9 @@ export class MugStack extends cdk.Stack {
     super(scope, id, props);
 
     // ---- DynamoDB（プロビジョンド。Auto Scaling・PITR・Streams は使わない） ----
+    const tables: Record<string, dynamodb.Table> = {};
     for (const t of TABLES) {
-      new dynamodb.Table(this, `${t.id}Table`, {
+      tables[t.id] = new dynamodb.Table(this, `${t.id}Table`, {
         partitionKey: { name: t.pk, type: dynamodb.AttributeType.STRING },
         sortKey: t.sk ? { name: t.sk, type: dynamodb.AttributeType.STRING } : undefined,
         billingMode: dynamodb.BillingMode.PROVISIONED,
@@ -61,7 +62,22 @@ export class MugStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(10),
       reservedConcurrentExecutions: 2, // 同時実行数の上限（ループなどで大量に動かないように）
       logGroup: apiLogGroup,
+      environment: {
+        // IDトークンの検証に使う（秘密ではない）
+        USER_POOL_ID: userPool.userPoolId,
+        USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
+        USERS_TABLE_NAME: tables.Users.tableName,
+      },
     });
+
+    // Users テーブルの読み書きだけを許可する（Scan や他のテーブルは許可しない）。
+    // 他のテーブルは、そのAPIを作るときに必要な操作だけを足す。
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
+        resources: [tables.Users.tableArn],
+      }),
+    );
 
     // 関数URL。AWS_IAM なので、Worker の署名がない呼び出しは AWS の手前で 403 になる
     const functionUrl = apiFunction.addFunctionUrl({

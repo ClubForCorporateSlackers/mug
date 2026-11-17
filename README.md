@@ -92,8 +92,8 @@ npx cdk deploy
 | 項目 | 値 | 使う場所 |
 |---|---|---|
 | 画面のURL | `https://mug.st2026ne.workers.dev` | ブラウザ |
-| CognitoのユーザープールID | （未） | フロントの `VITE_COGNITO_USER_POOL_ID` |
-| CognitoのクライアントID | （未） | フロントの `VITE_COGNITO_CLIENT_ID` |
+| CognitoのユーザープールID | `ap-northeast-1_AFaQnY16E` | フロントの `VITE_COGNITO_USER_POOL_ID` |
+| CognitoのクライアントID | `4qfvcdn0pkrg5696vfrjmoo37r` | フロントの `VITE_COGNITO_CLIENT_ID` |
 
 秘密の値（AWSのアクセスキー、パスワード）はここに書かないでください。
 
