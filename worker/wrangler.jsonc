@@ -5,10 +5,17 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
 
-  // 画面ファイル。/api/* だけ Worker のコードを通し、それ以外はファイルをそのまま返す
-  // フロントができたら directory を "../frontend/dist" に変える
+  // デプロイ・プレビュー・wrangler dev の前に、フロントをビルドして frontend/dist を作る。
+  // ここに書いておけば、Cloudflare のビルド設定（ダッシュボード）を変えなくてよい
+  "build": {
+    "command": "npm ci && npm run build",
+    "cwd": "../frontend",
+    "watch_dir": "../frontend/src"
+  },
+
+  // 画面ファイル（frontend のビルド結果）。/api/* だけ Worker のコードを通し、それ以外はファイルをそのまま返す
   "assets": {
-    "directory": "./public",
+    "directory": "../frontend/dist",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"],
     "not_found_handling": "single-page-application"
