@@ -25,3 +25,16 @@ test('プロフィールの保存は UpdateItem 1回。createdAt と pinCount �
   // pinCount を上書き（SET pinCount = :zero）していないこと
   expect(input.UpdateExpression).not.toMatch(/pinCount = :zero/);
 });
+
+test('pinCount は ADD で1増やす。未登録の人の項目は作らない（条件付き）', async () => {
+  const send = jest.spyOn(DynamoDBDocumentClient.prototype, 'send').mockResolvedValue({} as never);
+  await createDynamoUsersRepo('UsersTable').incrementPinCount('u1');
+  const input = (send.mock.calls[0][0] as UpdateCommand).input;
+  expect(input).toMatchObject({
+    TableName: 'UsersTable',
+    Key: { userId: 'u1' },
+    UpdateExpression: 'ADD pinCount :one',
+    ConditionExpression: 'attribute_exists(userId)',
+    ExpressionAttributeValues: { ':one': 1 },
+  });
+});

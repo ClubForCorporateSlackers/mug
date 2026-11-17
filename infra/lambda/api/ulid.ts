@@ -1,0 +1,18 @@
+import { randomBytes } from 'node:crypto';
+
+// ULID（作成順に並ぶID、26文字）。docs/api-spec.md の「ID」。小さいので自作した
+// 先頭10文字＝作成時刻（ミリ秒）、残り16文字＝乱数80ビット。
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+export function ulid(now: number = Date.now()): string {
+  let time = '';
+  let t = now;
+  for (let i = 0; i < 10; i++) {
+    time = CROCKFORD[t % 32] + time;
+    t = Math.floor(t / 32);
+  }
+  const bytes = randomBytes(16);
+  let rand = '';
+  for (let i = 0; i < 16; i++) rand += CROCKFORD[bytes[i] & 31];
+  return time + rand;
+}

@@ -1,61 +1,10 @@
-import type { LambdaFunctionURLEvent } from 'aws-lambda';
-import { createHandler } from '../lambda/api/app';
-import type { UserItem, UsersRepo } from '../lambda/api/users';
+import { call, event, GOOD_TOKEN, setup as baseSetup, SUB } from './fakes';
+import type { UserItem } from '../lambda/api/users';
 
 // Lambda の振り分け・ログイン確認・/api/me のテスト。
-// 本物の Cognito と DynamoDB の代わりに、偽物（メモリ上）を使う。
+// 本物の Cognito と DynamoDB の代わりに、偽物（メモリ上。test/fakes.ts）を使う。
 
-const GOOD_TOKEN = 'good-token';
-const SUB = 'user-sub-123';
-
-function setup(initial: UserItem[] = []) {
-  const store = new Map(initial.map((u) => [u.userId, { ...u }]));
-  const users: UsersRepo = {
-    async get(userId) {
-      return store.get(userId);
-    },
-    async saveProfile(userId, nickname, bloodType, now) {
-      const old = store.get(userId);
-      // 本物（users.ts の UpdateItem）と同じく、createdAt と pinCount はないときだけ入れる
-      const item: UserItem = {
-        ...old,
-        userId,
-        nickname,
-        bloodType,
-        updatedAt: now,
-        createdAt: old?.createdAt ?? now,
-        pinCount: old?.pinCount ?? 0,
-      };
-      store.set(userId, item);
-      return item;
-    },
-  };
-  const handler = createHandler({
-    verifyIdToken: async (token) => {
-      if (token !== GOOD_TOKEN) throw new Error('invalid');
-      return { sub: SUB };
-    },
-    users,
-  });
-  return { handler, store };
-}
-
-function event(method: string, path: string, opts: { token?: string; body?: unknown } = {}): LambdaFunctionURLEvent {
-  const headers: Record<string, string> = {};
-  if (opts.token) headers['x-id-token'] = opts.token;
-  return {
-    rawPath: path,
-    headers,
-    body: opts.body === undefined ? undefined : typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body),
-    isBase64Encoded: false,
-    requestContext: { http: { method } },
-  } as unknown as LambdaFunctionURLEvent;
-}
-
-async function call(h: ReturnType<typeof setup>['handler'], e: LambdaFunctionURLEvent) {
-  const res = await h(e);
-  return { status: res.statusCode, body: JSON.parse(res.body ?? 'null') };
-}
+const setup = (users: UserItem[] = []) => baseSetup({ users });
 
 describe('振り分け', () => {
   test('GET /api/hello は今までどおり hello を返す', async () => {
@@ -157,16 +106,11 @@ describe('PUT /api/me', () => {
 });
 
 test('DBのエラーなど想定外のときは 500 INTERNAL_ERROR', async () => {
-  const handler = createHandler({
-    verifyIdToken: async () => ({ sub: SUB }),
-    users: {
-      get: async () => {
-        throw new Error('db down');
-      },
-      saveProfile: async () => {
-        throw new Error('db down');
-      },
-    },
+  const fail = async () => {
+    throw new Error('db down');
+  };
+  const { handler } = baseSetup({
+    overrides: { users: { get: fail, saveProfile: fail, incrementPinCount: fail } },
   });
   const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
   const res = await call(handler, event('GET', '/api/me', { token: GOOD_TOKEN }));

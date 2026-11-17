@@ -29,6 +29,8 @@
 | 22 | 11/16 | 市町村は国土地理院APIの **muniCd で判定・集計**し、名前は変換表で付ける。取れないとき（海上・API失敗）は「不明」として**投稿は止めない** | 市町村名の文字列で集計 | APIは名前を返さない（コードと町名だけ）。コードなら表記ゆれがない。APIは地理院地図用で外部利用の保証がないため、失敗しても動くようにする | 小松 |
 | 23 | 11/17 | Worker 用 IAMユーザーの権限は、この関数だけを対象に **`lambda:InvokeFunctionUrl`（条件 `lambda:FunctionUrlAuthType = AWS_IAM`）と `lambda:InvokeFunction`（条件 `lambda:InvokedViaFunctionUrl = true`）の2つ** | `InvokeFunctionUrl` だけ（#15） | 2025年10月以降に作った関数URLは、両方の権限がないと 403 になる（公式ドキュメントで確認）。`InvokeFunction` は関数URL経由に限るので、キーで関数を直接呼ぶことはできない | 小松 |
 | 24 | 11/17 | Worker のプレビュー（Workers Builds／`wrangler preview`）は、**本番と同じ関数URL（同じ Lambda・DynamoDB）を共用**する。`wrangler.jsonc` の `previews` ブロックに `vars.FUNCTION_URL` と `invocation_logs: false` を書き、AWS のキーは `wrangler preview base-config secret put` で登録する | 共用／プレビュー用にバックエンドを別に作る | ハッカソンなので環境を2つ持つ手間をかけない。プレビューは本番の設定を引き継がない（公式ドキュメントで確認）ため、`previews` ブロックに書き直す。プレビューから書いたデータは本番のDBに入る点に注意 | 小松 |
+| 25 | 11/17 | Pins の `cell`（geohash）を **5文字から4文字**にする（経度0.35度×緯度0.18度、日本付近で約32km×20km） | 5文字（約5km四方）／3文字／自前のマス目／表示範囲を0.1度に狭める | 0.5度四方の地図では、5文字だと Query が最大169回で、ピン0件でも約85ユニット（Pins は10）を使う。4文字なら最大12回・約6ユニット。1マスに200件より多くたまると古いピンが出なくなるので、件数が増えたら見直す（docs/adr/feature-api-pins.md） | 小松 |
+| 26 | 11/17 | ピンを立てたときの件数の更新（Rankings・Users の `pinCount`）は**トランザクションにしない**。ピンを保存したあとに更新し、**失敗しても 201 を返す**（失敗はログに残す） | トランザクション（TransactWriteItems）／失敗したら 500 | トランザクションは書き込みユニットを2倍使い、1件の投稿で Rankings（5ユニット）を超える。ピンが保存済みなのに 500 を返すと、もう一度押されて同じピンが2つできる。まれにランキングの件数が少なくなることは許す（docs/adr/feature-api-pins.md） | 小松 |
 
 ## 未決定
 
