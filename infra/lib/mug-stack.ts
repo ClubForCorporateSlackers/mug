@@ -93,7 +93,7 @@ export class MugStack extends cdk.Stack {
         resources: [tables.Pins.tableArn],
       }),
     );
-    // Rankings：件数を増やす（UpdateItem の ADD）。読むのはランキングのAPI（4-4）で足す
+    // Rankings：件数を増やす（UpdateItem の ADD）。読むのはランキングのAPI（5-3）で足す
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['dynamodb:UpdateItem'],
