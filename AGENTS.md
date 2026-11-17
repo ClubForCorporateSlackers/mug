@@ -22,6 +22,7 @@
 - API：docs/api-spec.md
 - DB：docs/db-schema.md
 - 決まったことと理由：docs/decisions.md
+- 画面（`frontend/`）の作り方：frontend/AGENTS.md（shadcn/ui・Tailwind CSS・基本コンポーネントとページの分け方）
 - 仕様と違う実装が必要になったら、**実装を進める前に人間に確認**し、同じPRで docs/ も更新する
 
 ## 5つの約束（いつでも案Eに切り替えられるようにするため）
