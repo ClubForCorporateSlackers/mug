@@ -28,10 +28,10 @@ const TYPES: { value: RankType; label: string }[] = [
 ];
 const ALL = 'すべて';
 
-type Props = { guest: boolean; onTab: (tab: TabName) => void };
+type Props = { onTab: (tab: TabName) => void };
 
 // C1〜C4 ランキング
-export function RankingPage({ guest, onTab }: Props) {
+export function RankingPage({ onTab }: Props) {
   const [type, setType] = useState<RankType>('city');
   const [month, setMonth] = useState(currentMonth);
   const [prefecture, setPrefecture] = useState(ALL);
@@ -66,7 +66,6 @@ export function RankingPage({ guest, onTab }: Props) {
   const loading = loaded !== `${type}-${month}`;
 
   useEffect(() => {
-    if (guest) return;
     void (async () => {
       try {
         const profile = await api<Profile>('GET', '/api/me', { idToken: await idToken() });
@@ -75,7 +74,7 @@ export function RankingPage({ guest, onTab }: Props) {
         setMyBlood('');
       }
     })();
-  }, [guest]);
+  }, []);
 
   // 都道府県の絞り込みは、返ってきた上位20件に対して画面側で行う（API に都道府県の指定がない）
   const shown =

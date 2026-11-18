@@ -4,10 +4,10 @@ import { MugButton } from '@/components/MugButton';
 import { MugMark } from '@/components/MugMark';
 import { Screen } from '@/components/Screen';
 
-type Props = { onStart: () => void; onLogin: () => void; onGuest: () => void };
+type Props = { onStart: () => void; onLogin: () => void };
 
 // A1 ようこそ
-export function WelcomePage({ onStart, onLogin, onGuest }: Props) {
+export function WelcomePage({ onStart, onLogin }: Props) {
   return (
     <Screen tone="brand">
       <div className="flex flex-1 flex-col items-center gap-4 px-4 pt-14 text-center">
@@ -28,9 +28,6 @@ export function WelcomePage({ onStart, onLogin, onGuest }: Props) {
         <MugButton onClick={onStart}>はじめる（新規登録）</MugButton>
         <MugButton tone="plain" onClick={onLogin}>
           ログイン
-        </MugButton>
-        <MugButton tone="plain" className="h-10 text-[15px] font-medium" onClick={onGuest}>
-          ログインせずに見る
         </MugButton>
       </div>
     </Screen>
