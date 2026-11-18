@@ -28,17 +28,6 @@ type Props = {
 
 type PinResponse = { pins: Pin[]; truncated: boolean };
 
-// GET /api/pins は縦横0.5度までしか返さない（docs/api-spec.md）。少し余裕をみて0.45度まで。
-const MAX_SPAN = 0.45;
-
-// 表示範囲が MAX_SPAN を超えないところまでしか縮小できないようにする
-function limitZoom(map: Map) {
-  const { clientWidth, clientHeight } = map.getContainer();
-  const lat = (map.getCenter().lat * Math.PI) / 180;
-  const pixels = Math.max(clientWidth, clientHeight * Math.cos(lat));
-  map.setMinZoom(Math.log2((360 * pixels) / (512 * MAX_SPAN)));
-}
-
 // 表示中のピンでいちばん多い市町村名（「不明」は除く）
 function topCity(pins: Pin[]): string | null {
   const counts = new globalThis.Map<string, number>();
@@ -134,6 +123,7 @@ export function MapPage({
       const bounds = map.getBounds();
       const latSpan = bounds.getNorth() - bounds.getSouth();
       const lngSpan = bounds.getEast() - bounds.getWest();
+      // GET /api/pins は縦横0.5度より広い範囲を受け付けない（docs/api-spec.md）
       if (latSpan > 0.5 || lngSpan > 0.5) {
         show([]);
         setNotice('範囲が広すぎます。拡大してください');
@@ -166,15 +156,11 @@ export function MapPage({
     map.on('load', () => {
       ready = true;
       setLoaded(true);
-      limitZoom(map);
       void draw();
     });
     map.on('moveend', () => {
-      if (!ready) return;
-      limitZoom(map);
-      schedule();
+      if (ready) schedule();
     });
-    map.on('resize', () => limitZoom(map));
 
     // ほかの人が立てたピンも出るように、見ている間は30秒ごとに読み直す
     const refresh = () => {
