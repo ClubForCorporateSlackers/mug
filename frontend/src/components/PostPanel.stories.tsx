@@ -10,7 +10,6 @@ const meta = {
     memo: '',
     onStamp: fn(),
     onMemo: fn(),
-    onAdjust: fn(),
     onCancel: fn(),
     onDone: fn(),
   },

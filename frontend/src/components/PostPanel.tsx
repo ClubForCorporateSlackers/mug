@@ -1,4 +1,4 @@
-import { CircleCheck, Move, X } from 'lucide-react';
+import { CircleCheck, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { PinStamp } from '@/lib/types';
 import { BottomPanel } from './BottomPanel';
@@ -12,13 +12,12 @@ type Props = {
   error?: string;
   onStamp: (stamp: PinStamp | null) => void;
   onMemo: (memo: string) => void;
-  onAdjust: () => void;
   onCancel: () => void;
   onDone: () => void;
 };
 
 // B4。ピンにスタンプとひとことを付けて立てる
-export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, onAdjust, onCancel, onDone }: Props) {
+export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, onCancel, onDone }: Props) {
   return (
     <BottomPanel label="ピンを立てる">
       <div className="flex items-start gap-3">
@@ -45,14 +44,6 @@ export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, o
         onChange={(event) => onMemo(event.target.value)}
         className="h-[50px] rounded-[14px] border-0 bg-muted px-4 text-[17px] shadow-none placeholder:text-placeholder focus-visible:border-2 focus-visible:border-ring focus-visible:ring-0 md:text-[17px]"
       />
-      <button
-        type="button"
-        className="flex items-center gap-2 self-start text-[15px] font-bold text-primary"
-        onClick={onAdjust}
-      >
-        <Move className="size-5" aria-hidden />
-        ピンの位置を調整
-      </button>
       {error ? (
         <p className="text-[13px] font-medium text-primary" role="alert">
           {error}

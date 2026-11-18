@@ -3,7 +3,6 @@ import '@/lib/map-worker';
 import { AttributionControl, GeoJSONSource, Map as MapView, Marker } from 'maplibre-gl';
 import { CircleAlert, EyeOff, Flag, Move, Navigation, Pencil, Trash2, User } from 'lucide-react';
 import { ActionMenu, type MenuAction } from '@/components/ActionMenu';
-import { AdjustPanel } from '@/components/AdjustPanel';
 import { AppNotice } from '@/components/AppNotice';
 import { AreaCard } from '@/components/AreaCard';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -59,7 +58,6 @@ export function MapPage({ onTab, onProfile }: Props) {
   const loadPinsRef = useRef<() => void>(() => undefined);
 
   const [location, setLocation] = useState<'loading' | 'on' | 'off'>('loading');
-  const [here, setHere] = useState<Point | null>(null);
   const [pins, setPins] = useState<Pin[]>([]);
   const [notice, setNotice] = useState('');
   const [toast, setToast] = useState('');
@@ -67,7 +65,7 @@ export function MapPage({ onTab, onProfile }: Props) {
   const [myPinIds, setMyPinIds] = useState<string[]>([]);
 
   // 投稿（B4〜B6）
-  const [mode, setMode] = useState<'browse' | 'compose' | 'adjust'>('browse');
+  const [mode, setMode] = useState<'browse' | 'compose'>('browse');
   const [draft, setDraft] = useState<Point | null>(null);
   const [stamp, setStamp] = useState<PinStamp | null>(null);
   const [memo, setMemo] = useState('');
@@ -178,13 +176,12 @@ export function MapPage({ onTab, onProfile }: Props) {
   const locate = useCallback(async (fly: boolean) => {
     try {
       const point = await currentPosition();
-      setHere(point);
       setLocation('on');
       const map = mapRef.current;
       if (map) {
         userMarker.current?.remove();
         userMarker.current = new Marker({ element: createUserDot() }).setLngLat([point.lng, point.lat]).addTo(map);
-        if (fly) map.flyTo({ center: [point.lng, point.lat], zoom: 15 });
+        if (fly) map.flyTo({ center: [point.lng, point.lat], zoom: 16 });
       }
       return point;
     } catch {
@@ -219,7 +216,7 @@ export function MapPage({ onTab, onProfile }: Props) {
     draftMarker.current?.remove();
     draftMarker.current = null;
     const source = map.getSource('draft') as GeoJSONSource | undefined;
-    // 点線の円は B4 だけ（B5 の位置の調整中は出さない）
+    // 点線の円と投稿中のピンは、ピンを立てるシート（B4）を開いているときだけ
     if (!draft || mode !== 'compose') {
       source?.setData({ type: 'FeatureCollection', features: [] });
       return;
@@ -244,26 +241,19 @@ export function MapPage({ onTab, onProfile }: Props) {
       .addTo(map);
   }, [draft, mode]);
 
-  async function startPost() {
-    const point = (await locate(false)) ?? here;
-    if (!point) return;
-    setSelected(null);
-    setDraft(point);
-    setStamp(null);
-    setMemo('');
-    setPostError('');
-    setMode('compose');
-    mapRef.current?.flyTo({ center: [point.lng, point.lat], zoom: 16 });
-  }
-
-  function confirmAdjust() {
+  // 画面の中央のピンの位置に立てる。地図は最初は現在地が中央なので、動かさなければ現在地になる
+  function startPost() {
     const center = mapRef.current?.getCenter();
     if (!center) return;
     if (!inJapan(center.lat, center.lng)) {
       flash('日本の範囲の中で場所を選んでください');
       return;
     }
+    setSelected(null);
     setDraft({ lat: center.lat, lng: center.lng });
+    setStamp(null);
+    setMemo('');
+    setPostError('');
     setMode('compose');
   }
 
@@ -340,18 +330,15 @@ export function MapPage({ onTab, onProfile }: Props) {
     <main className="relative h-svh overflow-hidden">
       <MapSurface ref={holder} label="地図" />
 
-      {mode === 'adjust' ? (
+      {/* 画面の中央に固定したピン。地図を動かして刺された場所に合わせ、「ここで刺された！」で立てる */}
+      {mode === 'browse' && location === 'on' ? (
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
-          <MugMark label="立てるピン" className="h-[78px] w-14" />
+          <MugMark label="ピンを立てる位置（地図の中央）" className="h-[78px] w-14" />
         </div>
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-4 top-[calc(env(safe-area-inset-top)+12px)] flex flex-col gap-2">
-        {mode === 'adjust' ? (
-          <div className="pointer-events-auto">
-            <MapBanner icon={Move}>地図を動かして、刺された場所にピンを合わせてください</MapBanner>
-          </div>
-        ) : (
+        {mode === 'browse' ? (
           <div className="pointer-events-auto flex gap-2">
             {location === 'loading' ? (
               <AreaCard title="現在地を取得中…" subtitle="しばらくお待ちください" />
@@ -361,7 +348,7 @@ export function MapPage({ onTab, onProfile }: Props) {
             )}
             <RoundButton icon={User} label="マイページ" size="lg" onClick={onProfile} />
           </div>
-        )}
+        ) : null}
         {location === 'off' && mode === 'browse' ? (
           <div className="pointer-events-auto">
             <MapBanner
@@ -395,7 +382,7 @@ export function MapPage({ onTab, onProfile }: Props) {
             <SasaretaButton
               disabled={location !== 'on'}
               label={location === 'off' ? '位置情報がオフです' : 'ここで刺された！'}
-              onClick={() => void startPost()}
+              onClick={startPost}
             />
           </div>
         </div>
@@ -411,12 +398,10 @@ export function MapPage({ onTab, onProfile }: Props) {
           error={postError}
           onStamp={setStamp}
           onMemo={setMemo}
-          onAdjust={() => setMode('adjust')}
           onCancel={() => setConfirmCancel(true)}
           onDone={() => void submitPost()}
         />
       ) : null}
-      {mode === 'adjust' ? <AdjustPanel onCancel={() => setMode('compose')} onConfirm={confirmAdjust} /> : null}
       <ConfirmDialog
         open={confirmCancel}
         title="このピンを取り消しますか？"
