@@ -5,12 +5,11 @@ import { StampPicker } from './StampPicker';
 const meta = {
   title: 'Components/StampPicker',
   component: StampPicker,
-  args: { value: null, onChange: fn() },
+  args: { value: 'kayui', onChange: fn() },
 } satisfies Meta<typeof StampPicker>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const None: Story = {};
-export const Kayui: Story = { args: { value: 'kayui' } };
-export const Itai: Story = { args: { value: 'itai' } };
+export const Selected: Story = {};
+export const None: Story = { args: { value: null } };

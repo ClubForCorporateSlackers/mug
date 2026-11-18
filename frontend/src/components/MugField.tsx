@@ -1,18 +1,44 @@
-import type { ComponentProps } from 'react';
+import { useId, type ComponentProps } from 'react';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
-type Props = { label: string; hint?: string } & ComponentProps<'input'>;
+type Props = { label: string; hint?: string; error?: string } & ComponentProps<'input'>;
 
-export function MugField({ label, hint, id, ...props }: Props) {
-  const fieldId = id ?? props.name ?? label;
+// Figma の Text Field。高さ50。ラベルは常に出す。エラーは枠と文言の両方で伝える
+export function MugField({ label, hint, error, id, className, ...props }: Props) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const noteId = `${fieldId}-note`;
+  const note = error || hint;
   return (
-    <label className="flex flex-col gap-1 text-sm font-bold" htmlFor={fieldId}>
-      {label}
-      <input
+    <div className="flex w-full flex-col gap-2">
+      <label className="text-[15px] leading-[22px] font-bold tracking-[0.01em]" htmlFor={fieldId}>
+        {label}
+      </label>
+      <Input
         id={fieldId}
-        className="h-12 rounded-2xl border bg-card px-3 text-base font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={note ? noteId : undefined}
+        className={cn(
+          'h-[50px] rounded-[14px] border-0 bg-muted px-4 text-[17px] leading-[26px] font-medium tracking-[0.01em] shadow-none placeholder:text-placeholder md:text-[17px]',
+          'focus-visible:border-2 focus-visible:border-ring focus-visible:ring-0',
+          'aria-invalid:border aria-invalid:border-primary aria-invalid:bg-accent/40 aria-invalid:ring-0',
+          'disabled:opacity-100',
+          className,
+        )}
         {...props}
       />
-      {hint ? <span className="text-xs font-medium text-muted-foreground">{hint}</span> : null}
-    </label>
+      {note ? (
+        <p
+          id={noteId}
+          className={cn(
+            'text-[13px] leading-[18px] font-medium tracking-[0.01em]',
+            error ? 'text-primary' : 'text-muted-foreground',
+          )}
+        >
+          {note}
+        </p>
+      ) : null}
+    </div>
   );
 }

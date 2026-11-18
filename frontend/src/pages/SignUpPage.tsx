@@ -1,16 +1,15 @@
 import { useState, type FormEvent } from 'react';
-import { AppNotice } from '@/components/AppNotice';
 import { MugButton } from '@/components/MugButton';
 import { MugField } from '@/components/MugField';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { NavBar } from '@/components/NavBar';
+import { PageTitle } from '@/components/PageTitle';
+import { Screen } from '@/components/Screen';
 import { authMessage, signUp } from '@/lib/auth';
 
-type Props = {
-  onBack: () => void;
-  onCreated: (email: string, password: string) => void;
-};
+type Props = { onBack: () => void; onCreated: (email: string, password: string) => void; onLogin: () => void };
 
-export function SignUpPage({ onBack, onCreated }: Props) {
+// A2 アカウント作成
+export function SignUpPage({ onBack, onCreated, onLogin }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,35 +30,42 @@ export function SignUpPage({ onBack, onCreated }: Props) {
   }
 
   return (
-    <main className="flex min-h-svh flex-col">
-      <ScreenHeader title="アカウント作成" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
-        <MugField
-          label="メールアドレス"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
-        <MugField
-          label="パスワード"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          hint="8文字以上。大文字・小文字・数字・記号"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-        {error ? <AppNotice tone="error">{error}</AppNotice> : null}
-        <div className="mt-auto">
+    <Screen>
+      <NavBar backLabel="戻る" onBack={onBack} />
+      <form className="flex flex-1 flex-col" onSubmit={submit}>
+        <div className="flex flex-1 flex-col gap-5 px-4 pt-2">
+          <PageTitle title="アカウント作成" description="メールアドレスとパスワードを入力してください。" />
+          <MugField
+            label="メールアドレス"
+            type="email"
+            autoComplete="email"
+            placeholder="example@mail.com"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <MugField
+            label="パスワード"
+            type="password"
+            autoComplete="new-password"
+            placeholder="8文字以上"
+            minLength={8}
+            required
+            hint="8文字以上で、大文字・小文字・数字・記号をふくめてください"
+            error={error}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-2 px-4 py-2">
           <MugButton type="submit" disabled={busy}>
-            {busy ? '送信中' : '確認コードを送る'}
+            {busy ? '送信中' : '確認コードを送信'}
+          </MugButton>
+          <MugButton type="button" tone="plain" onClick={onLogin}>
+            アカウントをお持ちの方はログイン
           </MugButton>
         </div>
       </form>
-    </main>
+    </Screen>
   );
 }

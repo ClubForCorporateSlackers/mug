@@ -5,11 +5,11 @@ import { BloodPicker } from './BloodPicker';
 const meta = {
   title: 'Components/BloodPicker',
   component: BloodPicker,
-  args: { value: 'A', onChange: fn() },
+  args: { value: 'O', onChange: fn() },
 } satisfies Meta<typeof BloodPicker>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Selected: Story = {};
-export const Unknown: Story = { args: { value: 'UNKNOWN' } };
+export const NotSelected: Story = { args: { value: null } };

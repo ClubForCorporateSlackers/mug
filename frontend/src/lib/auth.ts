@@ -72,6 +72,27 @@ export function signIn(email: string, password: string): Promise<Session> {
   });
 }
 
+// API に付けるIDトークン。期限（1時間）が切れていれば、ライブラリが取り直す
+export async function idToken(): Promise<string | undefined> {
+  return (await currentSession())?.idToken;
+}
+
+export function forgotPassword(email: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    userOf(email).forgotPassword({
+      onSuccess: () => resolve(),
+      onFailure: reject,
+      inputVerificationCode: () => resolve(),
+    });
+  });
+}
+
+export function confirmPassword(email: string, code: string, password: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    userOf(email).confirmPassword(code, password, { onSuccess: () => resolve(), onFailure: reject });
+  });
+}
+
 export function signOut(): void {
   pool.getCurrentUser()?.signOut();
 }
@@ -84,6 +105,8 @@ export function authMessage(err: unknown): string {
   if (code === 'ExpiredCodeException') return '確認コードの期限が切れました。もう一度送ってください';
   if (code === 'UserNotConfirmedException') return 'メールの確認コードがまだです';
   if (code === 'NotAuthorizedException') return 'メールアドレスかパスワードが違います';
+  if (code === 'UserNotFoundException') return 'このメールアドレスは登録されていません';
+  if (code === 'LimitExceededException') return '回数の上限に達しました。しばらくしてから試してください';
   if (code === 'InvalidParameterException') return '入力の形を確認してください';
   if (err instanceof Error && err.message) return err.message;
   return 'うまくいきませんでした。もう一度試してください';

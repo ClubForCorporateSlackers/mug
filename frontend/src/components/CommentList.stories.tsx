@@ -6,12 +6,19 @@ const meta = {
   component: CommentList,
   args: {
     comments: [
-      { commentId: '1', nickname: 'みなと', text: '昨日もそこでした。', createdAt: '2026-11-17T11:00:00+09:00' },
+      {
+        commentId: '1',
+        nickname: 'かゆみ太郎',
+        text: '自分も昨日ここでやられました…お大事に！',
+        createdAt: '',
+        when: '1時間前',
+      },
       {
         commentId: '2',
-        nickname: 'ゆう',
-        text: '子どもと通るので別の道にします。',
-        createdAt: '2026-11-17T11:20:00+09:00',
+        nickname: 'キャンプ好き',
+        text: '池のまわりが特に多い気がします。',
+        createdAt: '',
+        when: '45分前',
       },
     ],
   },
@@ -20,5 +27,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Thread: Story = {};
+export const Normal: Story = {};
 export const Empty: Story = { args: { comments: [] } };
+export const Loading: Story = { args: { comments: [], loading: true } };

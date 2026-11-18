@@ -1,12 +1,13 @@
-import { cn } from 'cn';
+import { cn } from '@/lib/utils';
 import { BLOOD_OPTIONS } from '@/lib/labels';
 import type { BloodType } from '@/lib/types';
 
-type Props = { value: BloodType; onChange: (value: BloodType) => void };
+type Props = { value: BloodType | null; onChange: (value: BloodType) => void };
 
+// 血液型の選択。選んだものは赤い枠と淡い赤の地
 export function BloodPicker({ value, onChange }: Props) {
   return (
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="血液型">
+    <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="血液型">
       {BLOOD_OPTIONS.map((option) => {
         const on = value === option.value;
         return (
@@ -16,12 +17,14 @@ export function BloodPicker({ value, onChange }: Props) {
             role="radio"
             aria-checked={on}
             className={cn(
-              'rounded-full border px-3 py-2 text-sm font-bold',
-              on ? 'border-foreground bg-foreground text-card' : 'bg-card',
+              'h-11 rounded-xl text-[15px] leading-[22px] font-bold tracking-[0.01em] whitespace-nowrap',
+              // 「答えない」は4文字あるので、狭いカードでも1行に収まるよう小さくする
+              option.value === 'UNKNOWN' && 'text-[13px] tracking-normal',
+              on ? 'border-2 border-primary bg-accent text-primary' : 'bg-muted text-foreground',
             )}
             onClick={() => onChange(option.value)}
           >
-            {option.label}
+            {option.value === 'UNKNOWN' ? '答えない' : option.value}
           </button>
         );
       })}

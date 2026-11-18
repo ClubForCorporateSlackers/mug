@@ -5,11 +5,13 @@ const meta = {
   title: 'Components/RankList',
   component: RankList,
   args: {
+    unit: '回',
     items: [
-      { rank: 1, label: '世田谷区', count: 42 },
-      { rank: 2, label: '渋谷区', count: 31 },
-      { rank: 2, label: '杉並区', count: 31 },
-      { rank: 4, label: '港区', count: 12 },
+      { rank: 1, label: '東京都世田谷区', count: 182 },
+      { rank: 2, label: '東京都練馬区', count: 151 },
+      { rank: 3, label: '東京都杉並区', count: 128 },
+      { rank: 4, label: '東京都江戸川区', count: 117 },
+      { rank: 4, label: '東京都足立区', count: 117 },
     ],
   },
 } satisfies Meta<typeof RankList>;
@@ -17,5 +19,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Cities: Story = {};
+export const Normal: Story = {};
 export const Empty: Story = { args: { items: [] } };
+export const Loading: Story = { args: { items: [], loading: true } };

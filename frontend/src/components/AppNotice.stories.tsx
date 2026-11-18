@@ -12,3 +12,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Info: Story = {};
 export const Error: Story = { args: { tone: 'error', children: 'メモは100文字以内で入力してください' } };
+export const Floating: Story = { args: { floating: true, children: '準備中です（APIの追加待ち）' } };

@@ -44,42 +44,59 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-placeholder: var(--placeholder);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-risk-high: var(--risk-high);
+  --color-risk-mid: var(--risk-mid);
+  --color-risk-low: var(--risk-low);
+  --color-location: var(--location);
+  /* Figma の Elevation/Floating と Elevation/FAB */
+  --shadow-floating: 0 4px 16px 0 rgb(74 78 105 / 0.14);
+  --shadow-fab: 0 2px 4px 0 rgb(74 78 105 / 0.12), 0 8px 20px 0 rgb(214 47 51 / 0.35);
 }
 
 :root {
-  /* Figma の画面：きいろい紙面、赤いボタン、濃い文字 */
-  --radius: 1rem;
-  --background: oklch(0.94 0.055 98);
-  --foreground: oklch(0.3 0.03 265);
-  --card: oklch(0.985 0.015 98);
-  --card-foreground: oklch(0.3 0.03 265);
-  --popover: oklch(0.985 0.015 98);
-  --popover-foreground: oklch(0.3 0.03 265);
-  --primary: oklch(0.55 0.2 27);
-  --primary-foreground: oklch(0.99 0.005 98);
-  --secondary: oklch(0.96 0.03 98);
-  --secondary-foreground: oklch(0.3 0.03 265);
-  --muted: oklch(0.9 0.04 98);
-  --muted-foreground: oklch(0.48 0.02 265);
-  --accent: oklch(0.82 0.08 15);
-  --accent-foreground: oklch(0.3 0.03 265);
-  --destructive: oklch(0.55 0.2 27);
-  --border: oklch(0.86 0.04 95);
-  --input: oklch(0.86 0.04 95);
-  --ring: oklch(0.55 0.2 27);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Figma（mug）の色。名前の横は Figma の変数名 */
+  --radius: 0.875rem;
+  --background: #fff8e1; /* background/primary */
+  --foreground: #1b1b2f; /* label/primary */
+  --card: #ffffff; /* background/secondary */
+  --card-foreground: #1b1b2f;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b2f;
+  --primary: #d62f33; /* accent/primary */
+  --primary-foreground: #ffffff; /* label/on-accent */
+  --secondary: #fff0c2; /* background/tertiary */
+  --secondary-foreground: #1b1b2f;
+  --muted: rgb(74 78 105 / 0.08); /* fill/secondary（入力欄の地の色） */
+  --muted-foreground: #4a4e69; /* label/secondary */
+  --accent: #ffe3e9; /* accent/cheek-subtle */
+  --accent-foreground: #1b1b2f;
+  --destructive: #d62f33;
+  --border: rgb(74 78 105 / 0.16); /* separator */
+  --input: rgb(74 78 105 / 0.08);
+  --ring: #4a4e69; /* accent/mosquito（入力中の枠） */
+  --placeholder: #8a8da6; /* label/tertiary */
+  --brand: #ffe08a; /* background/brand */
+  --brand-foreground: #1b1b2f;
+  --risk-high: #e5383b; /* risk/high */
+  --risk-mid: #ffb35c; /* risk/mid */
+  --risk-low: #ffe08a; /* risk/low */
+  --location: #0a84ff; /* map/user-location */
+  --chart-1: #e5383b;
+  --chart-2: #4a4e69;
+  --chart-3: #8a8da6;
+  --chart-4: #ffb35c;
+  --chart-5: #ffe08a;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1b1b2f;
+  --sidebar-primary: #d62f33;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fff0c2;
+  --sidebar-accent-foreground: #1b1b2f;
+  --sidebar-border: rgb(74 78 105 / 0.16);
+  --sidebar-ring: #4a4e69;
 }
 
 .dark {
@@ -121,7 +138,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', sans-serif;
   }
 }
