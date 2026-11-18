@@ -31,19 +31,31 @@ type Props = {
   onBoundsChange: (bounds: Bounds) => void;
   // ピンを押したとき。地図の何もないところを押したら null
   onSelectPin: (pin: Pin | null) => void;
+  // 利用者が地図を動かし始めたとき（ドラッグ、拡大・縮小など）。focus での移動では呼ばない
+  onUserMove?: () => void;
   className?: string;
 };
 
 // 地図を表示し、ピンを置く。API は呼ばない（データは props で受け取る）
-export function PinMap({ pins, selectedPinId, focus = null, onBoundsChange, onSelectPin, className }: Props) {
+export function PinMap({
+  pins,
+  selectedPinId,
+  focus = null,
+  onBoundsChange,
+  onSelectPin,
+  onUserMove,
+  className,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   // 最新の関数を地図のイベントから呼べるように ref に入れておく
   const onBoundsChangeRef = useRef(onBoundsChange);
   const onSelectPinRef = useRef(onSelectPin);
+  const onUserMoveRef = useRef(onUserMove);
   useEffect(() => {
     onBoundsChangeRef.current = onBoundsChange;
     onSelectPinRef.current = onSelectPin;
+    onUserMoveRef.current = onUserMove;
   });
 
   // 地図を1回だけ作る
@@ -69,6 +81,11 @@ export function PinMap({ pins, selectedPinId, focus = null, onBoundsChange, onSe
     // 表示範囲は地図を作った直後から分かるので、地図の画像の読み込み（load）を待たずに知らせる
     report();
     map.on('moveend', report);
+    // 利用者の操作（マウス・指・ホイール・＋−ボタン）で動いたときだけ originalEvent が付く。
+    // flyTo などプログラムで動かしたときは付かない
+    map.on('movestart', (e) => {
+      if (e.originalEvent) onUserMoveRef.current?.();
+    });
     map.on('click', () => onSelectPinRef.current(null));
     mapRef.current = map;
 

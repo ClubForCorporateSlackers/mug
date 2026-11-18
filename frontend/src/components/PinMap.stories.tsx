@@ -10,6 +10,7 @@ const meta = {
     selectedPinId: null,
     onBoundsChange: fn(),
     onSelectPin: fn(),
+    onUserMove: fn(),
     pins: [
       {
         pinId: 'xn76-01JDSAMPLE1',

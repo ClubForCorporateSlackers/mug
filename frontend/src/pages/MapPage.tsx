@@ -43,6 +43,8 @@ export function MapPage() {
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // 古い呼び出しの結果で上書きしないように、呼んだ順に番号を振る
   const requestIdRef = useRef(0);
+  // 利用者が地図を自分で動かしたか。動かしたあとは、開いたときの自動取得で現在地へ飛ばない
+  const userMovedRef = useRef(false);
 
   const loadPins = useCallback(async (bounds: Bounds) => {
     // 「35.68」のような小数の形で送る（指数表記にならないよう toFixed）
@@ -91,13 +93,20 @@ export function MapPage() {
   }, []);
 
   // 開いたら現在地を求める。地図は先に代々木公園あたりを出しておき、取れたら移動する。
+  // ただし、取れるまでの間に利用者が地図を動かしていたら、見ている場所を変えないよう移動しない。
   // 許可されない・取れないときは、何も出さずに代々木公園あたりのまま
   useEffect(() => {
     if (!('geolocation' in navigator)) return;
-    navigator.geolocation.getCurrentPosition(moveToPosition, () => {}, GEO_OPTIONS);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!userMovedRef.current) moveToPosition(pos);
+      },
+      () => {},
+      GEO_OPTIONS,
+    );
   }, [moveToPosition]);
 
-  // 「現在地」ボタン。失敗したらお知らせを出す
+  // 「現在地」ボタン。地図を動かしたあとでも、必ず現在地へ移動する。失敗したらお知らせを出す
   function locate() {
     if (!('geolocation' in navigator)) {
       showNotice('この端末では現在地を使えません');
@@ -137,6 +146,9 @@ export function MapPage() {
         focus={focus}
         onBoundsChange={handleBoundsChange}
         onSelectPin={setSelectedPin}
+        onUserMove={() => {
+          userMovedRef.current = true;
+        }}
       />
       <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center px-4">
         <MapStatusBanner message={banner.message} tone={banner.tone} />
