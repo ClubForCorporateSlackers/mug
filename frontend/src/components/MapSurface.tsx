@@ -9,7 +9,7 @@ type Props = { ref?: Ref<HTMLDivElement>; label: string };
 // 「ここで刺された！」は、ページの側でこの上に置く
 export function MapSurface({ ref, label }: Props) {
   return (
-    <div className="absolute inset-0 bg-secondary [&_.maplibregl-ctrl-bottom-left]:bottom-[calc(49px+max(env(safe-area-inset-bottom),16px))]!">
+    <div className="absolute inset-0 bg-secondary [&_.maplibregl-ctrl-bottom-left]:bottom-[calc(49px+env(safe-area-inset-bottom))]!">
       <div ref={ref} role="region" aria-label={label} className="size-full" />
     </div>
   );

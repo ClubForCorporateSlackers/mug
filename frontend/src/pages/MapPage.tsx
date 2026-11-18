@@ -576,7 +576,7 @@ export function MapPage({ onTab, onProfile, focusPin }: Props) {
       </div>
 
       {mode === 'browse' ? (
-        <div className="pointer-events-none absolute inset-x-4 bottom-[calc(49px+max(env(safe-area-inset-bottom),16px)+48px)] flex flex-col items-end gap-4">
+        <div className="pointer-events-none absolute inset-x-4 bottom-[calc(49px+env(safe-area-inset-bottom)+48px)] flex flex-col items-end gap-4">
           <RoundButton
             icon={Navigation}
             label="現在地へ"

@@ -17,7 +17,7 @@ export function Screen({ children, tone = 'plain', withTabBar = false, className
       className={cn(
         'flex min-h-svh flex-col pt-[env(safe-area-inset-top)]',
         tone === 'brand' ? 'bg-brand' : 'bg-background',
-        withTabBar ? 'pb-[calc(49px+max(env(safe-area-inset-bottom),16px))]' : 'pb-[env(safe-area-inset-bottom)]',
+        withTabBar ? 'pb-[calc(49px+env(safe-area-inset-bottom))]' : 'pb-[env(safe-area-inset-bottom)]',
         className,
       )}
     >
