@@ -19,7 +19,9 @@ function userOf(email: string): CognitoUser {
 }
 
 function sessionOf(session: CognitoUserSession, email: string): Session {
-  return { idToken: session.getIdToken().getJwtToken(), email };
+  const token = session.getIdToken();
+  const claim = token.payload.email;
+  return { idToken: token.getJwtToken(), email: typeof claim === 'string' ? claim : email };
 }
 
 export function currentSession(): Promise<Session | null> {
@@ -72,6 +74,24 @@ export function signIn(email: string, password: string): Promise<Session> {
   });
 }
 
+export function forgotPassword(email: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    userOf(email).forgotPassword({
+      onSuccess: () => resolve(),
+      onFailure: (err) => reject(err),
+    });
+  });
+}
+
+export function confirmNewPassword(email: string, code: string, password: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    userOf(email).confirmPassword(code, password, {
+      onSuccess: () => resolve(),
+      onFailure: (err) => reject(err),
+    });
+  });
+}
+
 export function signOut(): void {
   pool.getCurrentUser()?.signOut();
 }
@@ -85,6 +105,8 @@ export function authMessage(err: unknown): string {
   if (code === 'UserNotConfirmedException') return 'メールの確認コードがまだです';
   if (code === 'NotAuthorizedException') return 'メールアドレスかパスワードが違います';
   if (code === 'InvalidParameterException') return '入力の形を確認してください';
+  if (code === 'UserNotFoundException') return 'このメールアドレスは登録されていません';
+  if (code === 'LimitExceededException') return '回数が多すぎます。しばらく待ってからもう一度試してください';
   if (err instanceof Error && err.message) return err.message;
   return 'うまくいきませんでした。もう一度試してください';
 }

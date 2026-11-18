@@ -1,6 +1,5 @@
 import { BottomNav } from '@/components/BottomNav';
 import { MugMark } from '@/components/MugMark';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import type { TabName } from '@/lib/route';
 
 const FACTS = [
@@ -15,14 +14,14 @@ type Props = { tab: TabName; onTab: (tab: TabName) => void };
 export function AboutPage({ tab, onTab }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
-      <ScreenHeader title="蚊のいいところ" />
-      <div className="flex flex-1 flex-col gap-3 px-4 pb-4">
+      <div className="flex flex-1 flex-col gap-3 px-4 pt-6 pb-4">
+        <h1 className="text-3xl font-bold">蚊のいいところ</h1>
         <div className="flex items-center gap-3">
-          <MugMark className="size-16 shrink-0" />
-          <p className="font-bold">刺された場所は、地図のほうで見てください。</p>
+          <MugMark className="size-16 shrink-0" decorative />
+          <p className="font-bold">刺されると困るけど、いいところもあります。</p>
         </div>
         {FACTS.map((fact) => (
-          <section key={fact.title} className="rounded-2xl bg-card px-3 py-3">
+          <section key={fact.title} className="rounded-3xl bg-card px-4 py-4">
             <h2 className="font-bold">{fact.title}</h2>
             <p className="mt-1 text-sm">{fact.body}</p>
           </section>

@@ -1,38 +1,51 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '@/lib/map-worker';
 import { AttributionControl, GeoJSONSource, Map, Marker } from 'maplibre-gl';
+import { Move, X } from 'lucide-react';
 import { AppNotice } from '@/components/AppNotice';
+import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { MugButton } from '@/components/MugButton';
+import { MugMark } from '@/components/MugMark';
 import { MugMemo } from '@/components/MugMemo';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { StampPicker } from '@/components/StampPicker';
 import { api } from '@/lib/api';
-import { TOKYO_STATION, circleRing, inJapan } from '@/lib/geo';
+import { circleRing, inJapan } from '@/lib/geo';
+import type { LatLng } from '@/lib/location';
 import { createMugMarker } from '@/lib/marker';
 import type { Pin, PinStamp } from '@/lib/types';
 
 type Props = {
   idToken: string;
+  start: LatLng;
   onBack: () => void;
   onPosted: (pin: Pin) => void;
 };
 
-export function ComposePage({ idToken, onBack, onPosted }: Props) {
+function circleData(point: LatLng) {
+  return {
+    type: 'Feature' as const,
+    properties: {},
+    geometry: { type: 'Polygon' as const, coordinates: [circleRing(point.lat, point.lng)] },
+  };
+}
+
+export function ComposePage({ idToken, start, onBack, onPosted }: Props) {
   const holder = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
-  const [point, setPoint] = useState(TOKYO_STATION);
+  const markerRef = useRef<Marker | null>(null);
+  const startRef = useRef(start);
+  const [point, setPoint] = useState(start);
+  const [adjusting, setAdjusting] = useState(false);
   const [stamp, setStamp] = useState<PinStamp | null>(null);
   const [memo, setMemo] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
-  const start = useRef(point);
-
   useEffect(() => {
     const element = holder.current;
     if (!element) return;
-    const origin = start.current;
+    const origin = startRef.current;
     const map = new Map({
       container: element,
       style: 'https://tiles.openfreemap.org/styles/positron',
@@ -42,74 +55,67 @@ export function ComposePage({ idToken, onBack, onPosted }: Props) {
     });
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     mapRef.current = map;
-    const button = createMugMarker('公開位置の目安');
-    const marker = new Marker({ element: button, anchor: 'bottom', draggable: true })
+    markerRef.current = new Marker({ element: createMugMarker('刺された場所'), anchor: 'bottom' })
       .setLngLat([origin.lng, origin.lat])
       .addTo(map);
-    marker.on('dragend', () => {
-      const next = marker.getLngLat();
-      setPoint({ lat: next.lat, lng: next.lng });
-    });
-
-    const drawCircle = (lat: number, lng: number) => {
-      const data = {
-        type: 'Feature' as const,
-        properties: {},
-        geometry: { type: 'Polygon' as const, coordinates: [circleRing(lat, lng)] },
-      };
-      const source = map.getSource('blur') as GeoJSONSource | undefined;
-      if (source) source.setData(data);
-      else {
-        map.addSource('blur', { type: 'geojson', data });
-        map.addLayer({
-          id: 'blur-fill',
-          type: 'fill',
-          source: 'blur',
-          paint: { 'fill-color': '#c23b3b', 'fill-opacity': 0.15 },
-        });
-        map.addLayer({
-          id: 'blur-line',
-          type: 'line',
-          source: 'blur',
-          paint: { 'line-color': '#2f3548', 'line-width': 2, 'line-dasharray': [2, 2] },
-        });
-      }
-    };
 
     map.on('load', () => {
-      drawCircle(origin.lat, origin.lng);
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const next = { lat: position.coords.latitude, lng: position.coords.longitude };
-          setPoint(next);
-          marker.setLngLat([next.lng, next.lat]);
-          map.easeTo({ center: [next.lng, next.lat] });
-          drawCircle(next.lat, next.lng);
-        },
-        () => undefined,
-        { enableHighAccuracy: false, timeout: 8000 },
-      );
+      map.addSource('blur', { type: 'geojson', data: circleData(origin) });
+      map.addLayer({
+        id: 'blur-fill',
+        type: 'fill',
+        source: 'blur',
+        paint: { 'fill-color': '#c23b3b', 'fill-opacity': 0.12 },
+      });
+      map.addLayer({
+        id: 'blur-line',
+        type: 'line',
+        source: 'blur',
+        paint: { 'line-color': '#c23b3b', 'line-width': 2, 'line-dasharray': [2, 2] },
+      });
     });
 
     return () => {
       map.remove();
       mapRef.current = null;
+      markerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    const source = map?.getSource('blur') as GeoJSONSource | undefined;
-    source?.setData({
-      type: 'Feature',
-      properties: {},
-      geometry: { type: 'Polygon', coordinates: [circleRing(point.lat, point.lng)] },
-    });
+    markerRef.current?.setLngLat([point.lng, point.lat]);
+    (map?.getSource('blur') as GeoJSONSource | undefined)?.setData(circleData(point));
   }, [point]);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  useEffect(() => {
+    const map = mapRef.current;
+    const element = markerRef.current?.getElement();
+    if (element) element.hidden = adjusting;
+    if (map?.getLayer('blur-fill')) {
+      const visibility = adjusting ? 'none' : 'visible';
+      map.setLayoutProperty('blur-fill', 'visibility', visibility);
+      map.setLayoutProperty('blur-line', 'visibility', visibility);
+    }
+  }, [adjusting]);
+
+  function startAdjust() {
+    mapRef.current?.easeTo({ center: [point.lng, point.lat] });
+    setAdjusting(true);
+  }
+
+  function finishAdjust() {
+    const center = mapRef.current?.getCenter();
+    if (center) setPoint({ lat: center.lat, lng: center.lng });
+    setAdjusting(false);
+  }
+
+  function cancelAdjust() {
+    mapRef.current?.easeTo({ center: [point.lng, point.lat] });
+    setAdjusting(false);
+  }
+
+  async function submit() {
     if (!inJapan(point.lat, point.lng)) {
       setError('日本の範囲の中で場所を選んでください');
       return;
@@ -129,36 +135,87 @@ export function ComposePage({ idToken, onBack, onPosted }: Props) {
     }
   }
 
-  function back() {
+  function leave() {
     if (memo.trim() || stamp) setConfirmLeave(true);
     else onBack();
   }
 
   return (
-    <main className="flex min-h-svh flex-col">
-      <ScreenHeader title="ここで刺された" onBack={back} />
-      <div ref={holder} className="mx-3 h-56 overflow-hidden rounded-2xl" />
-      <form className="flex flex-1 flex-col gap-3 px-4 py-3" onSubmit={submit}>
-        <AppNotice>黒い円の中のどこかで公開されます。正確な位置は保存しません。メモも匿名です。</AppNotice>
-        <StampPicker value={stamp} onChange={setStamp} />
-        <MugMemo label="メモ（任意）" maxLength={100} value={memo} onChange={(event) => setMemo(event.target.value)} />
-        {error ? <AppNotice tone="error">{error}</AppNotice> : null}
-        {confirmLeave ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-bold">投稿をやめますか？</p>
-            <MugButton type="button" variant="outline" onClick={onBack}>
+    <main className="flex h-svh flex-col">
+      <div className="relative min-h-0 flex-1">
+        <div ref={holder} className="h-full w-full" />
+        {adjusting ? (
+          <>
+            <p className="absolute inset-x-3 top-3 flex items-center gap-2 rounded-2xl bg-card px-3 py-3 text-sm font-bold">
+              <Move className="size-5 shrink-0" aria-hidden />
+              地図を動かして、刺された場所にピンを合わせてください
+            </p>
+            <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
+              <MugMark className="size-16" decorative />
+            </div>
+          </>
+        ) : null}
+      </div>
+      {adjusting ? (
+        <section className="rounded-t-3xl bg-card px-4 pt-4 pb-6" aria-label="ピンの位置を調整">
+          <p className="text-center text-xs">公開されるときは、ここから半径100m以内でぼかされます。</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <MugButton variant="secondary" onClick={cancelAdjust}>
+              キャンセル
+            </MugButton>
+            <MugButton onClick={finishAdjust}>この位置にする</MugButton>
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col gap-4 rounded-t-3xl bg-card px-4 pt-4 pb-6" aria-label="ピンを立てる">
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <h1 className="text-lg font-bold">ここで刺された</h1>
+              <p className="text-xs">位置は半径100m以内でぼかして公開されます。メモも匿名です。</p>
+            </div>
+            <button type="button" className="grid size-9 place-items-center" aria-label="やめる" onClick={leave}>
+              <X className="size-5" aria-hidden />
+            </button>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-bold">スタンプ（任意）</p>
+            <StampPicker value={stamp} onChange={setStamp} />
+          </div>
+          <MugMemo
+            label="ひとこと（任意）"
+            maxLength={100}
+            value={memo}
+            onChange={(event) => setMemo(event.target.value)}
+          />
+          <button
+            type="button"
+            className="flex items-center gap-2 self-start text-sm font-bold text-primary"
+            onClick={startAdjust}
+          >
+            <Move className="size-4" aria-hidden />
+            ピンの位置を調整
+          </button>
+          {error ? <AppNotice tone="error">{error}</AppNotice> : null}
+          <div className="grid grid-cols-2 gap-2">
+            <MugButton variant="secondary" onClick={leave}>
               やめる
             </MugButton>
-            <MugButton type="button" variant="ghost" onClick={() => setConfirmLeave(false)}>
-              続ける
+            <MugButton onClick={() => void submit()} disabled={busy}>
+              {busy ? '投稿中' : '投稿する'}
             </MugButton>
           </div>
-        ) : (
-          <MugButton type="submit" disabled={busy}>
-            {busy ? '投稿中' : '匿名で投稿する'}
-          </MugButton>
-        )}
-      </form>
+        </section>
+      )}
+      {confirmLeave ? (
+        <ConfirmSheet
+          title="投稿をやめますか？"
+          body="選んだスタンプとひとことは消えます。"
+          confirmLabel="やめる"
+          cancelLabel="続ける"
+          onConfirm={onBack}
+          onCancel={() => setConfirmLeave(false)}
+        />
+      ) : null}
     </main>
   );
 }

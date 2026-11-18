@@ -7,13 +7,15 @@ import { authMessage, signIn } from '@/lib/auth';
 import type { Session } from '@/lib/auth';
 
 type Props = {
+  notice?: string;
   onBack: () => void;
   onSignedIn: (session: Session) => void;
   onSignUp: () => void;
+  onReset: () => void;
   onConfirm: (email: string, password: string) => void;
 };
 
-export function LoginPage({ onBack, onSignedIn, onSignUp, onConfirm }: Props) {
+export function LoginPage({ notice, onBack, onSignedIn, onSignUp, onReset, onConfirm }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,6 +40,7 @@ export function LoginPage({ onBack, onSignedIn, onSignUp, onConfirm }: Props) {
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="ログイン" onBack={onBack} />
       <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+        {notice ? <AppNotice>{notice}</AppNotice> : null}
         <MugField
           label="メールアドレス"
           name="email"
@@ -56,6 +59,9 @@ export function LoginPage({ onBack, onSignedIn, onSignUp, onConfirm }: Props) {
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
+        <button type="button" className="self-start text-sm font-bold text-primary" onClick={onReset}>
+          パスワードをお忘れですか？
+        </button>
         {error ? <AppNotice tone="error">{error}</AppNotice> : null}
         <div className="mt-auto flex flex-col gap-2">
           <MugButton type="submit" disabled={busy}>

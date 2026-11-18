@@ -14,4 +14,3 @@ type Story = StoryObj<typeof meta>;
 export const Map: Story = {};
 export const Ranking: Story = { args: { tab: 'ranking' } };
 export const About: Story = { args: { tab: 'about' } };
-export const Me: Story = { args: { tab: 'me' } };

@@ -1,11 +1,15 @@
 import { cn } from 'cn';
 
-type Props = { className?: string };
+type Props = { className?: string; decorative?: boolean };
 
 // アイコンの蚊。色は画面のトークン（頭・くちばし・ほお）に合わせる。
-export function MugMark({ className }: Props) {
+export function MugMark({ className, decorative = false }: Props) {
   return (
-    <svg viewBox="0 0 80 96" className={cn('text-foreground', className)} role="img" aria-label="mug">
+    <svg
+      viewBox="0 0 80 96"
+      className={cn('text-foreground', className)}
+      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'mug' })}
+    >
       <path d="M30 28c-8-14-18-16-20-10" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
       <circle cx="10" cy="16" r="3.2" fill="currentColor" />
       <path d="M50 28c8-14 18-16 20-10" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />

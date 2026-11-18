@@ -57,9 +57,9 @@
   --popover-foreground: oklch(0.3 0.03 265);
   --primary: oklch(0.55 0.2 27);
   --primary-foreground: oklch(0.99 0.005 98);
-  --secondary: oklch(0.96 0.03 98);
+  --secondary: oklch(0.9 0.11 90);
   --secondary-foreground: oklch(0.3 0.03 265);
-  --muted: oklch(0.9 0.04 98);
+  --muted: oklch(0.93 0.025 95);
   --muted-foreground: oklch(0.48 0.02 265);
   --accent: oklch(0.82 0.08 15);
   --accent-foreground: oklch(0.3 0.03 265);
@@ -67,10 +67,11 @@
   --border: oklch(0.86 0.04 95);
   --input: oklch(0.86 0.04 95);
   --ring: oklch(0.55 0.2 27);
-  --chart-1: oklch(0.87 0 0);
+  /* ランキングの2位・3位 */
+  --chart-1: oklch(0.8 0.14 65);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
+  --chart-4: oklch(0.88 0.13 92);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);

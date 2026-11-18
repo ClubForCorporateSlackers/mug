@@ -5,7 +5,7 @@ import { ReactionBar } from './ReactionBar';
 const meta = {
   title: 'Components/ReactionBar',
   component: ReactionBar,
-  args: { counts: { odaiji: 12, kaite: 2, wakaru: 4 }, mine: ['odaiji'], onToggle: fn() },
+  args: { counts: { odaiji: 12, wakaru: 3 }, mine: ['odaiji'], onToggle: fn(), onAdd: fn() },
 } satisfies Meta<typeof ReactionBar>;
 
 export default meta;

@@ -37,6 +37,17 @@ export function formatWhen(iso: string): string {
   return `${month}/${day} ${hour}:${minute}`;
 }
 
+export function formatAgo(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const minutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+  if (minutes < 1) return 'たった今';
+  if (minutes < 60) return `${minutes}分前`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}時間前`;
+  if (minutes < 60 * 24 * 7) return `${Math.floor(minutes / 60 / 24)}日前`;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 export function currentMonth(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');

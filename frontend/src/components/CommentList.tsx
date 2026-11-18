@@ -1,4 +1,5 @@
-import { formatWhen } from '@/lib/labels';
+import { UserRound } from 'lucide-react';
+import { formatAgo } from '@/lib/labels';
 import type { Comment } from '@/lib/types';
 
 type Props = { comments: Comment[] };
@@ -8,14 +9,19 @@ export function CommentList({ comments }: Props) {
     return <p className="text-sm text-muted-foreground">まだコメントはありません</p>;
   }
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-4">
       {comments.map((comment) => (
-        <li key={comment.commentId} className="rounded-2xl bg-muted px-3 py-2 text-sm">
-          <p className="font-bold">
-            {comment.nickname}{' '}
-            <span className="font-medium text-muted-foreground">{formatWhen(comment.createdAt)}</span>
-          </p>
-          <p className="whitespace-pre-wrap">{comment.text}</p>
+        <li key={comment.commentId} className="flex gap-3 text-sm">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted" aria-hidden>
+            <UserRound className="size-4" />
+          </span>
+          <div>
+            <p className="font-bold">
+              {comment.nickname}{' '}
+              <span className="text-xs font-medium text-muted-foreground">{formatAgo(comment.createdAt)}</span>
+            </p>
+            <p className="whitespace-pre-wrap">{comment.text}</p>
+          </div>
         </li>
       ))}
     </ul>
