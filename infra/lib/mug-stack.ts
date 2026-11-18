@@ -66,7 +66,7 @@ export class MugStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_24_X,
       memorySize: 256,
       timeout: cdk.Duration.seconds(10),
-      reservedConcurrentExecutions: 2, // 同時実行数の上限（ループなどで大量に動かないように）
+      reservedConcurrentExecutions: 10, // 同時実行数の上限（ループなどで大量に動かないように。docs/decisions.md #31）
       logGroup: apiLogGroup,
       environment: {
         // IDトークンの検証に使う（秘密ではない）

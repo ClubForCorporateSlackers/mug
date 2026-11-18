@@ -17,8 +17,8 @@ export function RankingPage() {
 
   useEffect(() => {
     let cancelled = false;
-    // Lambda の同時実行数の上限が2（infra/lib/mug-stack.ts）なので、
-    // 3つを同時に呼ぶと「Rate Exceeded」になる。1つずつ順番に呼ぶ
+    // Lambda には同時実行数の上限がある（infra/lib/mug-stack.ts）。何人かが同時に開いても
+    // 「Rate Exceeded」になりにくいよう、3つを同時ではなく1つずつ順番に呼ぶ
     async function loadAll() {
       for (const type of TYPES) {
         try {

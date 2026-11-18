@@ -10,15 +10,23 @@ import { cn } from '@/lib/utils';
 
 // OpenFreeMap（キー不要）。出典表示は MapLibre が右下に出すので消さない
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-// 最初は日本全体を表示する
-const JAPAN_CENTER: [number, number] = [137.5, 37.5];
-const JAPAN_ZOOM = 4.3;
+// 最初は代々木公園あたりを表示する（現在地が取れたら focus で移動する）。
+// ズーム13なら表示範囲が0.5度より狭いので、すぐにピンが出る
+const INITIAL_CENTER: [number, number] = [139.6949, 35.6717];
+const INITIAL_ZOOM = 13;
+// focus で移動するときのズーム（これより拡大していたらそのまま）
+const FOCUS_ZOOM = 14;
 
 setWorkerUrl(workerUrl);
+
+// 地図を移動させたい場所。seq を変えると、同じ場所でももう一度移動する
+export type MapFocus = { lat: number; lng: number; seq: number };
 
 type Props = {
   pins: Pin[];
   selectedPinId: string | null;
+  // ここへ地図を移動する（現在地など）。null なら動かさない
+  focus?: MapFocus | null;
   // 表示範囲が変わったとき（最初の表示も含む）
   onBoundsChange: (bounds: Bounds) => void;
   // ピンを押したとき。地図の何もないところを押したら null
@@ -27,7 +35,7 @@ type Props = {
 };
 
 // 地図を表示し、ピンを置く。API は呼ばない（データは props で受け取る）
-export function PinMap({ pins, selectedPinId, onBoundsChange, onSelectPin, className }: Props) {
+export function PinMap({ pins, selectedPinId, focus = null, onBoundsChange, onSelectPin, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   // 最新の関数を地図のイベントから呼べるように ref に入れておく
@@ -44,8 +52,8 @@ export function PinMap({ pins, selectedPinId, onBoundsChange, onSelectPin, class
     const map = new MapLibreMap({
       container: containerRef.current,
       style: STYLE_URL,
-      center: JAPAN_CENTER,
-      zoom: JAPAN_ZOOM,
+      center: INITIAL_CENTER,
+      zoom: INITIAL_ZOOM,
     });
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
 
@@ -58,7 +66,8 @@ export function PinMap({ pins, selectedPinId, onBoundsChange, onSelectPin, class
         maxLng: b.getEast(),
       });
     };
-    map.on('load', report);
+    // 表示範囲は地図を作った直後から分かるので、地図の画像の読み込み（load）を待たずに知らせる
+    report();
     map.on('moveend', report);
     map.on('click', () => onSelectPinRef.current(null));
     mapRef.current = map;
@@ -68,6 +77,13 @@ export function PinMap({ pins, selectedPinId, onBoundsChange, onSelectPin, class
       mapRef.current = null;
     };
   }, []);
+
+  // focus が変わったら、その場所へ移動する
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focus) return;
+    map.flyTo({ center: [focus.lng, focus.lat], zoom: Math.max(map.getZoom(), FOCUS_ZOOM) });
+  }, [focus]);
 
   // ピンを置き直す
   useEffect(() => {

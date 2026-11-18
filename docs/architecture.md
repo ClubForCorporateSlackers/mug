@@ -408,7 +408,7 @@ flowchart LR
 |---|---|---|
 | 1 | DynamoDBはプロビジョンドにし、ユニット数を直接書く（合計 書き14／読み23）。Auto Scalingは使わない | DynamoDBの課金 |
 | 2 | 環境は1つだけにする（デモもその環境で行う） | ユニットが倍になること |
-| 3 | Lambdaの同時実行数に上限を付ける（`reservedConcurrentExecutions: 5` など） | ループによる大量実行 |
+| 3 | Lambdaの同時実行数に上限を付ける（`reservedConcurrentExecutions: 10`。docs/decisions.md #31） | ループによる大量実行 |
 | 4 | API Gatewayに流量制限を付ける（例：1秒10回、瞬間的な集中は20回まで。案C・D） | ループによる大量リクエスト |
 | 5 | ログの保存期間を1週間にする（`logRetention: ONE_WEEK`） | ログの保存料 |
 | 6 | PITR・バックアップ・Streamsはオフのまま | DynamoDBの別料金 |
