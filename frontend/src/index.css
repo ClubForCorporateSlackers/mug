@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -46,25 +47,26 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Figma の画面：きいろい紙面、赤いボタン、濃い文字 */
+  --radius: 1rem;
+  --background: oklch(0.94 0.055 98);
+  --foreground: oklch(0.3 0.03 265);
+  --card: oklch(0.985 0.015 98);
+  --card-foreground: oklch(0.3 0.03 265);
+  --popover: oklch(0.985 0.015 98);
+  --popover-foreground: oklch(0.3 0.03 265);
+  --primary: oklch(0.55 0.2 27);
+  --primary-foreground: oklch(0.99 0.005 98);
+  --secondary: oklch(0.96 0.03 98);
+  --secondary-foreground: oklch(0.3 0.03 265);
+  --muted: oklch(0.9 0.04 98);
+  --muted-foreground: oklch(0.48 0.02 265);
+  --accent: oklch(0.82 0.08 15);
+  --accent-foreground: oklch(0.3 0.03 265);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.86 0.04 95);
+  --input: oklch(0.86 0.04 95);
+  --ring: oklch(0.55 0.2 27);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -120,5 +122,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', sans-serif;
   }
 }
