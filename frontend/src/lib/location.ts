@@ -29,6 +29,17 @@ export async function getPosition(): Promise<LatLng> {
   }
 }
 
+// 歩いて動いたときも現在地の点がついてくるようにする。止めるときは返り値の関数を呼ぶ。
+export function watchPosition(onChange: (position: LatLng) => void): () => void {
+  if (!navigator.geolocation) return () => {};
+  const id = navigator.geolocation.watchPosition(
+    (position) => onChange({ lat: position.coords.latitude, lng: position.coords.longitude }),
+    () => {},
+    { enableHighAccuracy: true, maximumAge: 10000 },
+  );
+  return () => navigator.geolocation.clearWatch(id);
+}
+
 export async function locationPermission(): Promise<PermissionState | 'unknown'> {
   try {
     const status = await navigator.permissions.query({ name: 'geolocation' });

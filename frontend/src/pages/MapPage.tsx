@@ -28,6 +28,17 @@ type Props = {
 
 type PinResponse = { pins: Pin[]; truncated: boolean };
 
+// GET /api/pins は縦横0.5度までしか返さない（docs/api-spec.md）。少し余裕をみて0.45度まで。
+const MAX_SPAN = 0.45;
+
+// 表示範囲が MAX_SPAN を超えないところまでしか縮小できないようにする
+function limitZoom(map: Map) {
+  const { clientWidth, clientHeight } = map.getContainer();
+  const lat = (map.getCenter().lat * Math.PI) / 180;
+  const pixels = Math.max(clientWidth, clientHeight * Math.cos(lat));
+  map.setMinZoom(Math.log2((360 * pixels) / (512 * MAX_SPAN)));
+}
+
 // 表示中のピンでいちばん多い市町村名（「不明」は除く）
 function topCity(pins: Pin[]): string | null {
   const counts = new globalThis.Map<string, number>();
@@ -87,7 +98,9 @@ export function MapPage({
     mapRef.current = map;
 
     const shown = markers.current;
+    const latest = new globalThis.Map<string, Pin>();
     let request = 0;
+    let ready = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     // 表示中の範囲のピンに入れ替える。古い応答は捨て、同じピンは作り直さない。
@@ -97,14 +110,16 @@ export function MapPage({
         if (!keep.has(id)) {
           marker.remove();
           shown.delete(id);
+          latest.delete(id);
         }
       }
       for (const pin of next) {
+        latest.set(pin.pinId, pin);
         if (shown.has(pin.pinId)) continue;
         const button = createMugMarker(`${pin.city || '場所不明'}のピン`);
         button.addEventListener('click', (event) => {
           event.stopPropagation();
-          openRef.current(pin);
+          openRef.current(latest.get(pin.pinId) ?? pin);
         });
         shown.set(
           pin.pinId,
@@ -147,14 +162,30 @@ export function MapPage({
       timer = setTimeout(() => void draw(), 400);
     };
 
+    // map.loaded() はタイルの読み込み中に false になるので、最初の load が済んだかを自分で持つ
     map.on('load', () => {
+      ready = true;
       setLoaded(true);
+      limitZoom(map);
       void draw();
     });
     map.on('moveend', () => {
-      if (map.loaded()) schedule();
+      if (!ready) return;
+      limitZoom(map);
+      schedule();
     });
+    map.on('resize', () => limitZoom(map));
+
+    // ほかの人が立てたピンも出るように、見ている間は30秒ごとに読み直す
+    const refresh = () => {
+      if (ready && document.visibilityState === 'visible') void draw();
+    };
+    const poll = setInterval(refresh, 30000);
+    document.addEventListener('visibilitychange', refresh);
+
     return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', refresh);
       clearTimeout(timer);
       request += 1;
       shown.forEach((marker) => marker.remove());
@@ -176,10 +207,7 @@ export function MapPage({
     }
     const lngLat: [number, number] = [position.lng, position.lat];
     if (hereRef.current) hereRef.current.setLngLat(lngLat);
-    else
-      hereRef.current = new Marker({ element: createHereMarker('現在地'), anchor: 'bottom' })
-        .setLngLat(lngLat)
-        .addTo(map);
+    else hereRef.current = new Marker({ element: createHereMarker(), anchor: 'center' }).setLngLat(lngLat).addTo(map);
     if (!centeredRef.current) {
       centeredRef.current = true;
       map.jumpTo({ center: lngLat, zoom: 15 });

@@ -2,7 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MugMark } from '@/components/MugMark';
 import { ApiError, api } from '@/lib/api';
 import { currentSession, signOut, type Session } from '@/lib/auth';
-import { getPosition, locationPermission, markAsked, wasAsked, type LatLng, type LocationState } from '@/lib/location';
+import {
+  getPosition,
+  locationPermission,
+  markAsked,
+  wasAsked,
+  watchPosition,
+  type LatLng,
+  type LocationState,
+} from '@/lib/location';
 import type { Route, TabName } from '@/lib/route';
 import type { Pin, Profile } from '@/lib/types';
 import { AboutPage } from '@/pages/AboutPage';
@@ -47,6 +55,11 @@ function App() {
       setAsking(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (location !== 'on') return;
+    return watchPosition(setPosition);
+  }, [location]);
 
   // 地図に入る前に、位置情報の許可を聞くか（A8）を決める
   const goMap = useCallback(async () => {

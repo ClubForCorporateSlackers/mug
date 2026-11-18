@@ -5,13 +5,13 @@ import { Move, X } from 'lucide-react';
 import { AppNotice } from '@/components/AppNotice';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { MugButton } from '@/components/MugButton';
-import { MugMark } from '@/components/MugMark';
+import { PostPin } from '@/components/PostPin';
 import { MugMemo } from '@/components/MugMemo';
 import { StampPicker } from '@/components/StampPicker';
 import { api } from '@/lib/api';
 import { circleRing, inJapan } from '@/lib/geo';
 import type { LatLng } from '@/lib/location';
-import { createHereMarker } from '@/lib/marker';
+import { createPostMarker } from '@/lib/marker';
 import type { Pin, PinStamp } from '@/lib/types';
 
 type Props = {
@@ -55,7 +55,7 @@ export function ComposePage({ idToken, start, onBack, onPosted }: Props) {
     });
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     mapRef.current = map;
-    markerRef.current = new Marker({ element: createHereMarker('刺された場所'), anchor: 'bottom' })
+    markerRef.current = new Marker({ element: createPostMarker('刺された場所'), anchor: 'bottom' })
       .setLngLat([origin.lng, origin.lat])
       .addTo(map);
 
@@ -151,7 +151,7 @@ export function ComposePage({ idToken, start, onBack, onPosted }: Props) {
               地図を動かして、刺された場所にピンを合わせてください
             </p>
             <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
-              <MugMark className="h-16 w-12 drop-shadow-lg" decorative />
+              <PostPin />
             </div>
           </>
         ) : null}

@@ -1,7 +1,9 @@
 import { createRoot } from 'react-dom/client';
+import { HereDot } from '@/components/HereDot';
 import { MugMark } from '@/components/MugMark';
+import { PostPin } from '@/components/PostPin';
 
-// MapLibre に渡す DOM。蚊の口の先（下の端）が地点を指すので、Marker は anchor: 'bottom' で置く。
+// MapLibre に渡す DOM。蚊のピンは口の先（下の端）が地点なので anchor: 'bottom' で置く。
 
 // 投稿されたピン。クリックはページ側で付ける。
 export function createMugMarker(label: string): HTMLButtonElement {
@@ -13,17 +15,22 @@ export function createMugMarker(label: string): HTMLButtonElement {
   return button;
 }
 
-// これからピンを立てる場所（現在地・投稿中の場所）。
-export function createHereMarker(label: string): HTMLDivElement {
+// 現在地の青い点。anchor: 'center' で置く。
+export function createHereMarker(): HTMLDivElement {
   const element = document.createElement('div');
-  element.className = 'pointer-events-none relative h-16 w-12';
+  element.className = 'pointer-events-none';
+  element.setAttribute('role', 'img');
+  element.setAttribute('aria-label', '現在地');
+  createRoot(element).render(<HereDot />);
+  return element;
+}
+
+// これから立てるピン。anchor: 'bottom' で置く。
+export function createPostMarker(label: string): HTMLDivElement {
+  const element = document.createElement('div');
+  element.className = 'pointer-events-none';
   element.setAttribute('role', 'img');
   element.setAttribute('aria-label', label);
-  createRoot(element).render(
-    <>
-      <span className="absolute -bottom-1.5 left-1/2 size-3 -translate-x-1/2 animate-ping rounded-full bg-primary" />
-      <MugMark className="relative size-full drop-shadow-lg" decorative />
-    </>,
-  );
+  createRoot(element).render(<PostPin />);
   return element;
 }
