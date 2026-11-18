@@ -21,8 +21,8 @@ test('DynamoDB はプロビジョンドで5テーブル、合計 読み書き各
   expect(write).toBeLessThanOrEqual(25);
 });
 
-test('Lambda は同時実行数の上限2、ログは1週間で削除可能', () => {
-  template.hasResourceProperties('AWS::Lambda::Function', { ReservedConcurrentExecutions: 2 });
+test('Lambda は同時実行数の上限10、ログは1週間で削除可能', () => {
+  template.hasResourceProperties('AWS::Lambda::Function', { ReservedConcurrentExecutions: 10 });
   template.hasResource('AWS::Logs::LogGroup', {
     Properties: { RetentionInDays: 7 },
     DeletionPolicy: 'Delete',
