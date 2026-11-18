@@ -22,3 +22,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Normal: Story = {};
 export const Empty: Story = { args: { items: [], footer: undefined } };
+export const Loading: Story = { args: { items: [], loading: true, footer: undefined } };

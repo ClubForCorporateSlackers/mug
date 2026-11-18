@@ -36,8 +36,8 @@ export function RankingPage({ onTab }: Props) {
   const [type, setType] = useState<RankType>('city');
   const [month, setMonth] = useState(currentMonth);
   const [prefecture, setPrefecture] = useState(ALL);
-  const [items, setItems] = useState<RankItem[]>([]);
-  // 読み込み済みの「種類と月」。いまの組み合わせと違えば読み込み中
+  // 読み込んだ結果と、その「種類・月・都道府県」。いまの組み合わせと違えば読み込み中
+  const [result, setResult] = useState<{ key: string; items: RankItem[] }>({ key: '', items: [] });
   const [loaded, setLoaded] = useState('');
   const [error, setError] = useState('');
   const [me, setMe] = useState<Profile | null>(null);
@@ -56,7 +56,7 @@ export function RankingPage({ onTab }: Props) {
     api<{ items: RankItem[] }>('GET', `/api/rankings?${query}`)
       .then((data) => {
         if (stop) return;
-        setItems(data.items);
+        setResult({ key, items: data.items });
         setError('');
       })
       .catch((err: unknown) => {
@@ -69,7 +69,10 @@ export function RankingPage({ onTab }: Props) {
       stop = true;
     };
   }, [type, month, prefecture]);
-  const loading = loaded !== `${type}-${month}-${prefecture}`;
+  const currentKey = `${type}-${month}-${prefecture}`;
+  const loading = loaded !== currentKey;
+  // 切り替えた直後に、前の種類のデータ（例：市町村の20件）で血液型のグラフを描かないよう、いまの組み合わせの結果だけ使う
+  const items = result.key === currentKey ? result.items : [];
 
   useEffect(() => {
     void (async () => {
@@ -122,6 +125,7 @@ export function RankingPage({ onTab }: Props) {
               title={hasAverage ? '1人あたりの刺され回数（平均）' : '血液型ごとの刺された回数'}
               unit="回"
               items={bloodItems}
+              loading={loading}
               footer={
                 myBlood && me?.monthCount !== undefined
                   ? `あなた（${myBlood}）は今月 ${me.monthCount}回 刺されています`
