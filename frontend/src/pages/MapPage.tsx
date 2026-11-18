@@ -9,7 +9,7 @@ import { MugMark } from '@/components/MugMark';
 import { api } from '@/lib/api';
 import { TOKYO_STATION } from '@/lib/geo';
 import type { LatLng, LocationState } from '@/lib/location';
-import { createMugMarker } from '@/lib/marker';
+import { createHereMarker, createMugMarker } from '@/lib/marker';
 import type { TabName } from '@/lib/route';
 import type { Pin } from '@/lib/types';
 
@@ -59,7 +59,9 @@ export function MapPage({
 }: Props) {
   const holder = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
-  const markers = useRef<Marker[]>([]);
+  const markers = useRef(new globalThis.Map<string, Marker>());
+  const hereRef = useRef<Marker | null>(null);
+  const centeredRef = useRef(position !== null);
   const openRef = useRef(onOpenPin);
   const startRef = useRef(position ?? TOKYO_STATION);
   const [loaded, setLoaded] = useState(false);
@@ -84,14 +86,41 @@ export function MapPage({
     map.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     mapRef.current = map;
 
+    const shown = markers.current;
+    let request = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // 表示中の範囲のピンに入れ替える。古い応答は捨て、同じピンは作り直さない。
+    const show = (next: Pin[]) => {
+      const keep = new Set(next.map((pin) => pin.pinId));
+      for (const [id, marker] of shown) {
+        if (!keep.has(id)) {
+          marker.remove();
+          shown.delete(id);
+        }
+      }
+      for (const pin of next) {
+        if (shown.has(pin.pinId)) continue;
+        const button = createMugMarker(`${pin.city || '場所不明'}のピン`);
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openRef.current(pin);
+        });
+        shown.set(
+          pin.pinId,
+          new Marker({ element: button, anchor: 'bottom' }).setLngLat([pin.lng, pin.lat]).addTo(map),
+        );
+      }
+      setPins(next);
+    };
+
     const draw = async () => {
+      const id = ++request;
       const bounds = map.getBounds();
       const latSpan = bounds.getNorth() - bounds.getSouth();
       const lngSpan = bounds.getEast() - bounds.getWest();
-      markers.current.forEach((marker) => marker.remove());
-      markers.current = [];
       if (latSpan > 0.5 || lngSpan > 0.5) {
-        setPins([]);
+        show([]);
         setNotice('範囲が広すぎます。拡大してください');
         return;
       }
@@ -103,21 +132,19 @@ export function MapPage({
       });
       try {
         const data = await api<PinResponse>('GET', `/api/pins?${query}`);
-        setPins(data.pins);
+        if (id !== request) return;
+        show(data.pins);
         setNotice(data.truncated ? '表示しきれません。拡大してください' : '');
-        for (const pin of data.pins) {
-          const button = createMugMarker(`${pin.city || '場所不明'}のピン`);
-          button.addEventListener('click', (event) => {
-            event.stopPropagation();
-            openRef.current(pin);
-          });
-          markers.current.push(
-            new Marker({ element: button, anchor: 'bottom' }).setLngLat([pin.lng, pin.lat]).addTo(map),
-          );
-        }
       } catch (err) {
+        if (id !== request) return;
         setNotice(err instanceof Error ? err.message : 'ピンを読み込めませんでした');
       }
+    };
+
+    // 地図を動かしている間は読まず、止まってから1回だけ読む
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void draw(), 400);
     };
 
     map.on('load', () => {
@@ -125,17 +152,38 @@ export function MapPage({
       void draw();
     });
     map.on('moveend', () => {
-      if (map.loaded()) void draw();
+      if (map.loaded()) schedule();
     });
     return () => {
-      markers.current.forEach((marker) => marker.remove());
+      clearTimeout(timer);
+      request += 1;
+      shown.forEach((marker) => marker.remove());
+      shown.clear();
+      hereRef.current?.remove();
+      hereRef.current = null;
       map.remove();
       mapRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (position) mapRef.current?.flyTo({ center: [position.lng, position.lat], zoom: 15 });
+    const map = mapRef.current;
+    if (!map) return;
+    if (!position) {
+      hereRef.current?.remove();
+      hereRef.current = null;
+      return;
+    }
+    const lngLat: [number, number] = [position.lng, position.lat];
+    if (hereRef.current) hereRef.current.setLngLat(lngLat);
+    else
+      hereRef.current = new Marker({ element: createHereMarker('現在地'), anchor: 'bottom' })
+        .setLngLat(lngLat)
+        .addTo(map);
+    if (!centeredRef.current) {
+      centeredRef.current = true;
+      map.jumpTo({ center: lngLat, zoom: 15 });
+    }
   }, [position]);
 
   function locate() {
@@ -150,11 +198,11 @@ export function MapPage({
     <main className="flex h-svh flex-col">
       <div className="relative min-h-0 flex-1">
         <div ref={holder} className="h-full w-full" />
-        {!loaded ? (
+        {!loaded || location === 'pending' ? (
           <div className="absolute inset-0 grid place-items-center bg-background" role="status">
             <div className="flex flex-col items-center gap-2 text-sm font-bold">
               <LoaderCircle className="size-8 animate-spin" aria-hidden />
-              地図を読み込んでいます
+              {loaded ? '現在地を確認しています' : '地図を読み込んでいます'}
             </div>
           </div>
         ) : null}
@@ -210,7 +258,7 @@ export function MapPage({
             <Navigation className="size-5" aria-hidden />
           </button>
           <MugButton className="pointer-events-auto h-14 gap-3 text-lg" onClick={onCompose} disabled={!canPost}>
-            <MugMark className="size-9 rounded-full bg-secondary" decorative />
+            <MugMark className="size-9 rounded-full bg-secondary p-1" decorative />
             {canPost ? 'ここで刺された！' : location === 'off' ? '位置情報がオフです' : '現在地を確認しています'}
           </MugButton>
         </div>

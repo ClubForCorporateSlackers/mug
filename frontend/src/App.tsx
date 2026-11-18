@@ -61,8 +61,11 @@ function App() {
     }
     locationDecided.current = true;
     setRoute({ name: 'map' });
-    if (state === 'denied' || (state === 'prompt' && wasAsked())) setLocation('off');
-    else void requestLocation();
+    // iPhone の Safari は許可したあとも 'prompt' を返すことがあるので、断られたとき以外は毎回取りに行く
+    if (state === 'denied') {
+      setLocation('off');
+      setLocationHint(LOCATION_BLOCKED);
+    } else void requestLocation();
   }, [requestLocation]);
 
   const go = useCallback(

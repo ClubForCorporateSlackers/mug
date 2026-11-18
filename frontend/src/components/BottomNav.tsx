@@ -15,7 +15,7 @@ type Props = {
 
 export function BottomNav({ tab, onChange }: Props) {
   return (
-    <nav className="grid grid-cols-3 border-t bg-card pb-2" aria-label="画面">
+    <nav className="sticky bottom-0 z-10 grid grid-cols-3 border-t bg-card pb-2" aria-label="画面">
       {TABS.map((item) => {
         const Icon = item.icon;
         const on = item.id === tab;

@@ -31,6 +31,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-mug-body: var(--mug-body);
+  --color-mug-pupil: var(--mug-pupil);
+  --color-mug-cheek: var(--mug-cheek);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -67,6 +70,10 @@
   --border: oklch(0.86 0.04 95);
   --input: oklch(0.86 0.04 95);
   --ring: oklch(0.55 0.2 27);
+  /* アイコンの蚊（頭・黒目・ほお） */
+  --mug-body: oklch(0.44 0.05 278);
+  --mug-pupil: oklch(0.22 0.04 285);
+  --mug-cheek: oklch(0.72 0.09 0);
   /* ランキングの2位・3位 */
   --chart-1: oklch(0.8 0.14 65);
   --chart-2: oklch(0.556 0 0);

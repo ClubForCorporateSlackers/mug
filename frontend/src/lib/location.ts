@@ -5,7 +5,7 @@ export type LocationState = 'on' | 'off' | 'pending';
 
 const ASKED_KEY = 'mug.locationAsked';
 
-export function getPosition(): Promise<LatLng> {
+function readPosition(options: PositionOptions): Promise<LatLng> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('この端末では位置情報を使えません'));
@@ -14,9 +14,19 @@ export function getPosition(): Promise<LatLng> {
     navigator.geolocation.getCurrentPosition(
       (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
       (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 10000 },
+      options,
     );
   });
+}
+
+// GPS で取れないとき（PC や屋内で時間切れ）は、精度を下げてもう一度取る
+export async function getPosition(): Promise<LatLng> {
+  try {
+    return await readPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  } catch (err) {
+    if ((err as GeolocationPositionError | undefined)?.code === 1) throw err;
+    return readPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  }
 }
 
 export async function locationPermission(): Promise<PermissionState | 'unknown'> {
