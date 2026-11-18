@@ -11,11 +11,12 @@ const TABS: { id: TabName; label: string; icon: typeof Map }[] = [
 type Props = { tab: TabName; onChange: (tab: TabName) => void };
 
 // Figma の Tab Bar。画面の下に固定し、iPhone のホームインジケーターの分だけ下をあける。
-// ふつうの Safari や PC では安全な領域が 0 になるので、そのときも最低 16px はあける（文字が画面の端に付かないように）
+// ふつうの Safari や PC では安全な領域が 0 になるので、そのときも最低 16px はあける（文字が画面の端に付かないように）。
+// 透けない白にする。iPhone の Safari は、画面の下に固定した要素の色で画面の下の領域を塗るため
 export function TabBar({ tab, onChange }: Props) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-[430px] grid-cols-3 border-t-[0.5px] border-border bg-card/95 pb-[max(env(safe-area-inset-bottom),16px)] backdrop-blur-md"
+      className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-[430px] grid-cols-3 border-t-[0.5px] border-border bg-card pb-[max(env(safe-area-inset-bottom),16px)]"
       aria-label="画面の切り替え"
     >
       {TABS.map((item) => {

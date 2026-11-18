@@ -137,12 +137,12 @@
   * {
     @apply border-border outline-ring/50;
   }
-  /* ページの外側の色は、下のタブと同じ白にする。iPhone の画面下の安全な領域（Safari のツールバーの裏など）に、この色が見える。
-     画面の上（時計・バッテリーの所）は index.html の theme-color と、各画面の上端の色（クリーム色・黄色）のまま。
-     引っ張ったときに伸びる動き（バウンス）を止め、上の端に外側の白が見えないようにする */
+  /* ページの外側の色はクリーム色。iPhone の Safari は、画面の上（時計・バッテリーの所）をこの色にする。
+     画面の下は、下に固定した白いタブ（TabBar）の色になる。
+     引っ張ったときに伸びる動き（バウンス）は止める */
   html,
   body {
-    @apply bg-card;
+    @apply bg-background;
     overscroll-behavior-y: none;
   }
   body {
