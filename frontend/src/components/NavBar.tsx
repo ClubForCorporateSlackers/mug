@@ -29,7 +29,8 @@ export function NavBar({ backLabel, onBack, title, trailing, leading }: Props) {
             </button>
           ) : null)}
       </div>
-      <h1 className="truncate text-center text-[17px] leading-6 font-bold">{title}</h1>
+      {/* 見出しがない画面では空の h1 を出さない（大きな見出しの h1 と二重にならないように） */}
+      {title ? <h1 className="truncate text-center text-[17px] leading-6 font-bold">{title}</h1> : <span />}
       <div className="flex justify-end">{trailing}</div>
     </header>
   );

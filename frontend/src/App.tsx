@@ -34,6 +34,8 @@ async function nextAfterLogin(session: Session): Promise<Route> {
 
 function App() {
   const [route, setRoute] = useState<Route | null>(null);
+  // ログインせずに見ている（デモ用）。見るのは API がログイン不要なので、そのまま使える
+  const [guest, setGuest] = useState(false);
 
   useEffect(() => {
     void currentSession().then(async (session) =>
@@ -41,7 +43,10 @@ function App() {
     );
   }, []);
 
-  const enter = useCallback(async (session: Session) => setRoute(await nextAfterLogin(session)), []);
+  const enter = useCallback(async (session: Session) => {
+    setGuest(false);
+    setRoute(await nextAfterLogin(session));
+  }, []);
   const goTab = useCallback((tab: TabName) => setRoute({ name: tab } as Route), []);
   const afterSetup = useCallback(
     async () => setRoute((await locationState()) === 'prompt' ? { name: 'location' } : { name: 'map' }),
@@ -56,7 +61,16 @@ function App() {
       </div>
     );
   } else if (route.name === 'welcome') {
-    page = <WelcomePage onStart={() => setRoute({ name: 'signup' })} onLogin={() => setRoute({ name: 'login' })} />;
+    page = (
+      <WelcomePage
+        onStart={() => setRoute({ name: 'signup' })}
+        onLogin={() => setRoute({ name: 'login' })}
+        onGuest={() => {
+          setGuest(true);
+          setRoute({ name: 'map' });
+        }}
+      />
+    );
   } else if (route.name === 'signup') {
     page = (
       <SignUpPage
@@ -101,7 +115,7 @@ function App() {
   } else if (route.name === 'location') {
     page = <LocationPage onDone={() => setRoute({ name: 'map' })} />;
   } else if (route.name === 'ranking') {
-    page = <RankingPage onTab={goTab} />;
+    page = <RankingPage guest={guest} onTab={goTab} />;
   } else if (route.name === 'about') {
     page = <AboutPage onTab={goTab} />;
   } else if (route.name === 'me') {
@@ -122,7 +136,15 @@ function App() {
   } else if (route.name === 'editProfile') {
     page = <EditProfilePage onClose={() => setRoute({ name: 'me' })} />;
   } else {
-    page = <MapPage onTab={goTab} onProfile={() => setRoute({ name: 'me' })} />;
+    page = (
+      <MapPage
+        guest={guest}
+        onTab={goTab}
+        // ゲストにはマイページがないので、ログインへ
+        onProfile={() => setRoute(guest ? { name: 'login' } : { name: 'me' })}
+        onNeedLogin={() => setRoute({ name: 'login' })}
+      />
+    );
   }
 
   return <AppFrame>{page}</AppFrame>;

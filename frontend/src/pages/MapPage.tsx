@@ -30,7 +30,13 @@ import { createMugMarker, createUserDot, themeColor } from '@/lib/marker';
 import type { TabName } from '@/lib/route';
 import type { Comment, Pin, PinStamp, Profile, ReactionType } from '@/lib/types';
 
-type Props = { onTab: (tab: TabName) => void; onProfile: () => void };
+type Props = {
+  // ゲスト（ログインなしで見ている人）。投稿・コメント・リアクションはログインへ案内する
+  guest: boolean;
+  onTab: (tab: TabName) => void;
+  onProfile: () => void;
+  onNeedLogin: () => void;
+};
 
 type Point = { lat: number; lng: number };
 type PinResponse = { pins: Pin[]; truncated: boolean };
@@ -50,7 +56,7 @@ const MY_ACTIONS: MenuAction[] = [
 ];
 
 // B1〜B10 マップ（ピンを見る・立てる・詳細）
-export function MapPage({ onTab, onProfile }: Props) {
+export function MapPage({ guest, onTab, onProfile, onNeedLogin }: Props) {
   const holder = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapView | null>(null);
   const markers = useRef<Marker[]>([]);
@@ -202,6 +208,7 @@ export function MapPage({ onTab, onProfile }: Props) {
 
   // コメント欄の「○○ としてコメント…」に使う
   useEffect(() => {
+    if (guest) return;
     void (async () => {
       try {
         const profile = await api<Profile>('GET', '/api/me', { idToken: await idToken() });
@@ -210,7 +217,7 @@ export function MapPage({ onTab, onProfile }: Props) {
         setNickname('');
       }
     })();
-  }, []);
+  }, [guest]);
 
   // 投稿中のピンと半径100mの円（B4）
   useEffect(() => {
@@ -245,6 +252,10 @@ export function MapPage({ onTab, onProfile }: Props) {
   }, [draft, mode]);
 
   async function startPost() {
+    if (guest) {
+      onNeedLogin();
+      return;
+    }
     const point = (await locate(false)) ?? here;
     if (!point) return;
     setSelected(null);
@@ -296,6 +307,10 @@ export function MapPage({ onTab, onProfile }: Props) {
 
   async function toggleReaction(type: ReactionType) {
     if (!selected) return;
+    if (guest) {
+      onNeedLogin();
+      return;
+    }
     try {
       const data = await api<ReactionResponse>(
         mine.includes(type) ? 'DELETE' : 'PUT',
@@ -310,6 +325,10 @@ export function MapPage({ onTab, onProfile }: Props) {
   }
 
   async function sendComment() {
+    if (guest) {
+      onNeedLogin();
+      return;
+    }
     if (!selected || !text.trim()) return;
     setSending(true);
     try {
@@ -453,7 +472,9 @@ export function MapPage({ onTab, onProfile }: Props) {
             <CommentInput
               value={text}
               busy={sending}
-              placeholder={nickname ? `${nickname} としてコメント…` : 'コメント…'}
+              placeholder={
+                guest ? 'ログインするとコメントできます' : nickname ? `${nickname} としてコメント…` : 'コメント…'
+              }
               onChange={setText}
               onSubmit={() => void sendComment()}
             />
