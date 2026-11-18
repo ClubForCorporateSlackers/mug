@@ -1,9 +1,9 @@
 // API を呼ぶときは必ずこの api() を使う。
 // - パスは '/api/...' の相対パス（AGENTS.md の約束2）
-// - POST／PUT には本文の SHA-256 を x-amz-content-sha256 に付ける（約束3）
+// - POST／PUT／PATCH には本文の SHA-256 を x-amz-content-sha256 に付ける（約束3）
 // - ログインのトークンは X-Id-Token で送る。Authorization は使わない（約束5）
 
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 // docs/api-spec.md の「エラーの形」
 export class ApiError extends Error {
@@ -31,7 +31,7 @@ export async function api<T>(
   if (options.idToken) headers['X-Id-Token'] = options.idToken;
 
   let text: string | undefined;
-  if (method === 'POST' || method === 'PUT') {
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
     // ハッシュを計算した文字列をそのまま送る（違うと AWS で 403 になる）
     text = JSON.stringify(options.body ?? {});
     headers['Content-Type'] = 'application/json';

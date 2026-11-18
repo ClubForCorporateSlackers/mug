@@ -12,23 +12,26 @@ type Props = {
   error?: string;
   onStamp: (stamp: PinStamp | null) => void;
   onMemo: (memo: string) => void;
+  // × で閉じる（ピンはそのまま）
+  onClose: () => void;
+  // 「取り消す」（ピンを消す）
   onCancel: () => void;
   onDone: () => void;
 };
 
-// B4。ピンにスタンプとひとことを付けて立てる
-export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, onCancel, onDone }: Props) {
+// B4。ピンを立てたあとに出す。スタンプとひとことは任意で付ける
+export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, onClose, onCancel, onDone }: Props) {
   return (
-    <BottomPanel label="ピンを立てる">
+    <BottomPanel label="立てたピン">
       <div className="flex items-start gap-3">
         <CircleCheck className="mt-0.5 size-8 shrink-0 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
-          <h2 className="text-xl leading-7 font-bold">ここにピンを立てます</h2>
+          <h2 className="text-xl leading-7 font-bold">ピンを立てました！</h2>
           <p className="text-[13px] leading-[18px] font-medium text-muted-foreground">
             位置は半径100m以内でぼかして公開されます
           </p>
         </div>
-        <button type="button" aria-label="閉じる" className="grid size-8 place-items-center" onClick={onCancel}>
+        <button type="button" aria-label="閉じる" className="grid size-8 place-items-center" onClick={onClose}>
           <X className="size-6 text-muted-foreground" aria-hidden />
         </button>
       </div>
@@ -54,7 +57,7 @@ export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, o
           取り消す
         </MugButton>
         <MugButton disabled={busy} onClick={onDone}>
-          {busy ? '送信中' : '完了'}
+          {busy ? '保存中' : '完了'}
         </MugButton>
       </div>
     </BottomPanel>

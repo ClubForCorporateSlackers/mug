@@ -10,6 +10,7 @@ const meta = {
     memo: '',
     onStamp: fn(),
     onMemo: fn(),
+    onClose: fn(),
     onCancel: fn(),
     onDone: fn(),
   },
@@ -21,4 +22,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Normal: Story = {};
 export const Sending: Story = { args: { busy: true, memo: '公園のベンチ' } };
-export const Error: Story = { args: { error: '日本の範囲の中で場所を選んでください' } };
+export const Error: Story = { args: { error: 'スタンプとひとことの保存は準備中です（APIの追加待ち）' } };

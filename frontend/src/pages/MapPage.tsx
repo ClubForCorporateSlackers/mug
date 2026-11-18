@@ -64,9 +64,11 @@ export function MapPage({ onTab, onProfile }: Props) {
   const [nickname, setNickname] = useState('');
   const [myPinIds, setMyPinIds] = useState<string[]>([]);
 
-  // 投稿（B4〜B6）
+  // 投稿（B4〜B6）。ボタンを押したらすぐ立て、そのあとスタンプとひとことを任意で付ける
   const [mode, setMode] = useState<'browse' | 'compose'>('browse');
+  // ピンを合わせた場所（点線の円の中心）と、立てたピン（サーバーが100mずらした位置）
   const [draft, setDraft] = useState<Point | null>(null);
+  const [posted, setPosted] = useState<Pin | null>(null);
   const [stamp, setStamp] = useState<PinStamp | null>(null);
   const [memo, setMemo] = useState('');
   const [postError, setPostError] = useState('');
@@ -162,15 +164,18 @@ export function MapPage({ onTab, onProfile }: Props) {
     const map = mapRef.current;
     if (!map) return;
     markers.current.forEach((marker) => marker.remove());
-    markers.current = pins.map((pin) => {
-      const button = createMugMarker(`${pin.city || '場所不明'}のピン`);
-      button.addEventListener('click', (event) => {
-        event.stopPropagation();
-        openPinRef.current(pin);
+    const hidden = mode === 'compose' ? posted?.pinId : undefined;
+    markers.current = pins
+      .filter((pin) => pin.pinId !== hidden)
+      .map((pin) => {
+        const button = createMugMarker(`${pin.city || '場所不明'}のピン`);
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          openPinRef.current(pin);
+        });
+        return new Marker({ element: button, anchor: 'bottom' }).setLngLat([pin.lng, pin.lat]).addTo(map);
       });
-      return new Marker({ element: button, anchor: 'bottom' }).setLngLat([pin.lng, pin.lat]).addTo(map);
-    });
-  }, [pins]);
+  }, [pins, mode, posted]);
 
   // 現在地を取る（B1 読み込み中 → B2、取れなければ B3）
   const locate = useCallback(async (fly: boolean) => {
@@ -209,15 +214,15 @@ export function MapPage({ onTab, onProfile }: Props) {
     })();
   }, []);
 
-  // 投稿中のピンと半径100mの円（B4）
+  // 立てたピン（大きく出す）と、合わせた場所の半径100mの円（B4）
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     draftMarker.current?.remove();
     draftMarker.current = null;
     const source = map.getSource('draft') as GeoJSONSource | undefined;
-    // 点線の円と投稿中のピンは、ピンを立てるシート（B4）を開いているときだけ
-    if (!draft || mode !== 'compose') {
+    // 点線の円と大きなピンは、立てたあとのシート（B4）を開いているときだけ
+    if (!draft || !posted || mode !== 'compose') {
       source?.setData({ type: 'FeatureCollection', features: [] });
       return;
     }
@@ -236,13 +241,14 @@ export function MapPage({ onTab, onProfile }: Props) {
         paint: { 'line-color': themeColor('primary'), 'line-width': 2, 'line-dasharray': [2, 2] },
       });
     }
-    draftMarker.current = new Marker({ element: createMugMarker('立てるピン', true), anchor: 'bottom' })
-      .setLngLat([draft.lng, draft.lat])
+    draftMarker.current = new Marker({ element: createMugMarker('あなたが立てたピン', true), anchor: 'bottom' })
+      .setLngLat([posted.lng, posted.lat])
       .addTo(map);
-  }, [draft, mode]);
+  }, [draft, posted, mode]);
 
-  // 画面の中央のピンの位置に立てる。地図は最初は現在地が中央なので、動かさなければ現在地になる
-  function startPost() {
+  // 「ここで刺された！」。画面の中央のピンの位置に、その場ですぐ立てる。
+  // 地図は最初は現在地が中央なので、動かさなければ現在地になる
+  async function startPost() {
     const center = mapRef.current?.getCenter();
     if (!center) return;
     if (!inJapan(center.lat, center.lng)) {
@@ -250,38 +256,77 @@ export function MapPage({ onTab, onProfile }: Props) {
       return;
     }
     setSelected(null);
-    setDraft({ lat: center.lat, lng: center.lng });
-    setStamp(null);
-    setMemo('');
-    setPostError('');
-    setMode('compose');
-  }
-
-  async function submitPost() {
-    if (!draft) return;
     setPosting(true);
-    setPostError('');
     try {
       const pin = await api<Pin>('POST', '/api/pins', {
         idToken: await idToken(),
-        body: { lat: draft.lat, lng: draft.lng, stamp, memo: memo.trim() },
+        body: { lat: center.lat, lng: center.lng, stamp: null, memo: '' },
       });
       setMyPinIds((ids) => [...ids, pin.pinId]);
-      setMode('browse');
-      setDraft(null);
-      flash('ピンを立てました！');
+      setDraft({ lat: center.lat, lng: center.lng });
+      setPosted(pin);
+      setStamp(null);
+      setMemo('');
+      setPostError('');
+      setMode('compose');
       loadPinsRef.current();
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : '投稿できませんでした');
+      flash(err instanceof Error ? err.message : 'ピンを立てられませんでした');
     } finally {
       setPosting(false);
     }
   }
 
-  function cancelPost() {
-    setConfirmCancel(false);
+  function closePanel() {
     setMode('browse');
     setDraft(null);
+    setPosted(null);
+  }
+
+  // API がまだないとき（404・405）は「準備中」と分かるようにする
+  function waitingApi(err: unknown): boolean {
+    return err instanceof ApiError && (err.status === 404 || err.status === 405);
+  }
+
+  // B4 の「完了」。スタンプとひとことは任意。どちらもなければ閉じるだけ
+  async function saveExtras() {
+    if (!posted) return;
+    if (!stamp && !memo.trim()) {
+      closePanel();
+      return;
+    }
+    setPosting(true);
+    setPostError('');
+    try {
+      // TODO(API): PATCH /api/pins/{pinId}（立てたピンにスタンプ・ひとことを付ける）
+      await api<Pin>('PATCH', `/api/pins/${encodeURIComponent(posted.pinId)}`, {
+        idToken: await idToken(),
+        body: { stamp, memo: memo.trim() },
+      });
+      closePanel();
+      flash('スタンプとひとことを付けました');
+      loadPinsRef.current();
+    } catch (err) {
+      if (waitingApi(err)) setPostError('スタンプとひとことの保存は準備中です（APIの追加待ち）。ピンは立っています');
+      else setPostError(err instanceof Error ? err.message : '保存できませんでした');
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  // B6 の「取り消す」。立てたピンを消す
+  async function cancelPost() {
+    setConfirmCancel(false);
+    if (!posted) return;
+    try {
+      // TODO(API): DELETE /api/pins/{pinId}
+      await api<unknown>('DELETE', `/api/pins/${encodeURIComponent(posted.pinId)}`, { idToken: await idToken() });
+      closePanel();
+      flash('ピンを取り消しました');
+      loadPinsRef.current();
+    } catch (err) {
+      flash(waitingApi(err) ? WAITING : err instanceof Error ? err.message : '取り消せませんでした');
+    }
   }
 
   async function toggleReaction(type: ReactionType) {
@@ -370,7 +415,7 @@ export function MapPage({ onTab, onProfile }: Props) {
       </div>
 
       {mode === 'browse' ? (
-        <div className="pointer-events-none absolute inset-x-4 bottom-[calc(49px+env(safe-area-inset-bottom)+16px)] flex flex-col items-end gap-4">
+        <div className="pointer-events-none absolute inset-x-4 bottom-[calc(49px+env(safe-area-inset-bottom)+48px)] flex flex-col items-end gap-4">
           <RoundButton
             icon={Navigation}
             label="現在地へ"
@@ -380,9 +425,9 @@ export function MapPage({ onTab, onProfile }: Props) {
           />
           <div className="pointer-events-auto w-full">
             <SasaretaButton
-              disabled={location !== 'on'}
-              label={location === 'off' ? '位置情報がオフです' : 'ここで刺された！'}
-              onClick={startPost}
+              disabled={location !== 'on' || posting}
+              label={location === 'off' ? '位置情報がオフです' : posting ? 'ピンを立てています…' : 'ここで刺された！'}
+              onClick={() => void startPost()}
             />
           </div>
         </div>
@@ -399,16 +444,17 @@ export function MapPage({ onTab, onProfile }: Props) {
           onStamp={setStamp}
           onMemo={setMemo}
           onCancel={() => setConfirmCancel(true)}
-          onDone={() => void submitPost()}
+          onClose={closePanel}
+          onDone={() => void saveExtras()}
         />
       ) : null}
       <ConfirmDialog
         open={confirmCancel}
         title="このピンを取り消しますか？"
-        description="選んだスタンプとひとことも消えます。"
+        description="取り消したピンは元に戻せません。"
         confirmLabel="取り消す"
         onCancel={() => setConfirmCancel(false)}
-        onConfirm={cancelPost}
+        onConfirm={() => void cancelPost()}
       />
 
       <BottomSheet open={selected !== null} onClose={() => setSelected(null)} title="ピンの詳細">
