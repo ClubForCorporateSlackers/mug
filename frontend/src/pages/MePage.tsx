@@ -12,13 +12,12 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { StatTile } from '@/components/StatTile';
 import { TabBar } from '@/components/TabBar';
 import { api } from '@/lib/api';
-import { currentSession, idToken } from '@/lib/auth';
-import { bloodLabel } from '@/lib/labels';
+import { currentSession, idToken, signOut } from '@/lib/auth';
+import { bloodLabel, timeAgo } from '@/lib/labels';
 import { locationState, type LocationState } from '@/lib/location';
 import type { TabName } from '@/lib/route';
-import type { Profile } from '@/lib/types';
+import type { Pin, Profile } from '@/lib/types';
 
-const WAITING = '準備中です（APIの追加待ち）';
 const LOCATION_LABEL: Record<LocationState, string> = { granted: 'オン', prompt: '未設定', denied: 'オフ' };
 
 type Props = {
@@ -27,11 +26,16 @@ type Props = {
   onMyPins: () => void;
   onEdit: () => void;
   onLogout: () => void;
+  onOpenPin: (pin: Pin) => void;
+  // アカウントを消したあと（最初の画面へ）
+  onDeleted: () => void;
 };
 
 // D1 マイページ（D5 ログアウト、D6 アカウント削除の確認を含む）
-export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout }: Props) {
+export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout, onOpenPin, onDeleted }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [myPins, setMyPins] = useState<Pin[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState<LocationState>('prompt');
   const [dialog, setDialog] = useState<'none' | 'logout' | 'delete'>('none');
@@ -41,13 +45,31 @@ export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout }: Props) {
     void (async () => {
       try {
         setEmail((await currentSession())?.email ?? '');
-        setProfile(await api<Profile>('GET', '/api/me', { idToken: await idToken() }));
+        const token = await idToken();
+        setProfile(await api<Profile>('GET', '/api/me', { idToken: token }));
+        // 自分のピン（docs/api-spec.md の #12）
+        setMyPins((await api<{ pins: Pin[] }>('GET', '/api/me/pins', { idToken: token })).pins);
       } catch (err) {
         setMessage(err instanceof Error ? err.message : '読み込めませんでした');
       }
     })();
     void locationState().then(setLocation);
   }, []);
+
+  // D6。DELETE /api/me（#17）でプロフィール・ピン・コメント・リアクションと Cognito のユーザーを消す
+  async function deleteAccount() {
+    setDialog('none');
+    setDeleting(true);
+    try {
+      await api<{ ok: boolean }>('DELETE', '/api/me', { idToken: await idToken() });
+      signOut();
+      onDeleted();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'アカウントを削除できませんでした');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <Screen withTabBar>
@@ -62,15 +84,32 @@ export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout }: Props) {
           />
         ) : null}
         <div className="grid grid-cols-3 gap-2">
-          {/* TODO(API): 今月の回数と、もらった「お大事に」の数 */}
-          <StatTile value="—" label="今月の刺され" />
+          <StatTile value={profile?.monthCount !== undefined ? String(profile.monthCount) : '—'} label="今月の刺され" />
           <StatTile value={profile ? String(profile.pinCount) : '—'} label="これまで" />
-          <StatTile value="—" label={'もらった\nお大事に'} />
+          <StatTile
+            value={profile?.odaijiReceived !== undefined ? String(profile.odaijiReceived) : '—'}
+            label={'もらった\nお大事に'}
+          />
         </div>
         <SectionHeader title="自分のピン" actionLabel="すべて見る" onAction={onMyPins} />
         <MenuGroup label="自分のピン">
-          {/* TODO(API): 自分のピンの一覧（GET /api/me/pins） */}
-          <MenuRow icon={MapPin} label="自分のピンの一覧" value="準備中" onClick={onMyPins} />
+          {myPins === null ? (
+            <MenuRow icon={MapPin} label="読み込み中…" onClick={onMyPins} />
+          ) : myPins.length === 0 ? (
+            <MenuRow icon={MapPin} label="まだピンはありません" onClick={onMyPins} />
+          ) : (
+            myPins
+              .slice(0, 2)
+              .map((pin) => (
+                <MenuRow
+                  key={pin.pinId}
+                  icon={MapPin}
+                  label={pin.city || '場所不明'}
+                  value={timeAgo(pin.createdAt)}
+                  onClick={() => onOpenPin(pin)}
+                />
+              ))
+          )}
         </MenuGroup>
         <MenuGroup label="設定">
           <MenuRow icon={Pencil} label="プロフィールを編集" onClick={onEdit} />
@@ -89,7 +128,12 @@ export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout }: Props) {
         </MenuGroup>
         <MenuGroup label="アカウント">
           <MenuRow icon={LogOut} label="ログアウト" danger onClick={() => setDialog('logout')} />
-          <MenuRow icon={Trash2} label="アカウントを削除" danger onClick={() => setDialog('delete')} />
+          <MenuRow
+            icon={Trash2}
+            label={deleting ? '削除しています…' : 'アカウントを削除'}
+            danger
+            onClick={() => setDialog('delete')}
+          />
         </MenuGroup>
         {message ? <AppNotice>{message}</AppNotice> : null}
       </div>
@@ -108,11 +152,7 @@ export function MePage({ onBack, onTab, onMyPins, onEdit, onLogout }: Props) {
         description="投稿したピン・コメント・リアクションもすべて削除され、元に戻せません。"
         confirmLabel="削除する"
         onCancel={() => setDialog('none')}
-        onConfirm={() => {
-          // TODO(API): アカウント削除（Cognito と DynamoDB の両方を消す）
-          setDialog('none');
-          setMessage(WAITING);
-        }}
+        onConfirm={() => void deleteAccount()}
       />
     </Screen>
   );

@@ -6,6 +6,9 @@ import { MugButton } from './MugButton';
 import { StampPicker } from './StampPicker';
 
 type Props = {
+  title: string;
+  // 灰色のボタンの文字（立てた直後は「取り消す」、編集のときは「やめる」）
+  cancelLabel: string;
   stamp: PinStamp | null;
   memo: string;
   busy?: boolean;
@@ -14,19 +17,31 @@ type Props = {
   onMemo: (memo: string) => void;
   // × で閉じる（ピンはそのまま）
   onClose: () => void;
-  // 「取り消す」（ピンを消す）
+  // 灰色のボタン（立てた直後はピンを消す、編集のときはやめる）
   onCancel: () => void;
   onDone: () => void;
 };
 
-// B4。ピンを立てたあとに出す。スタンプとひとことは任意で付ける
-export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, onClose, onCancel, onDone }: Props) {
+// B4。ピンを立てたあと（と、自分のピンを編集するとき）に出す。スタンプとひとことは任意
+export function PostPanel({
+  title,
+  cancelLabel,
+  stamp,
+  memo,
+  busy = false,
+  error,
+  onStamp,
+  onMemo,
+  onClose,
+  onCancel,
+  onDone,
+}: Props) {
   return (
     <BottomPanel label="立てたピン">
       <div className="flex items-start gap-3">
         <CircleCheck className="mt-0.5 size-8 shrink-0 text-primary" aria-hidden />
         <div className="flex flex-1 flex-col">
-          <h2 className="text-xl leading-7 font-bold">ピンを立てました！</h2>
+          <h2 className="text-xl leading-7 font-bold">{title}</h2>
           <p className="text-[13px] leading-[18px] font-medium text-muted-foreground">
             位置は半径100m以内でぼかして公開されます
           </p>
@@ -54,7 +69,7 @@ export function PostPanel({ stamp, memo, busy = false, error, onStamp, onMemo, o
       ) : null}
       <div className="grid grid-cols-2 gap-3">
         <MugButton tone="gray" onClick={onCancel}>
-          取り消す
+          {cancelLabel}
         </MugButton>
         <MugButton disabled={busy} onClick={onDone}>
           {busy ? '保存中' : '完了'}

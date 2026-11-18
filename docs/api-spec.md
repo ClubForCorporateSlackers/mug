@@ -65,6 +65,20 @@ DBの中身は [db-schema.md](./db-schema.md) を参照。
 | 8 | DELETE | `/api/pins/{pinId}/reactions/{type}` | 🔒 | スタンプを取り消す |
 | 9 | GET | `/api/rankings` | 🌐 | ランキングを取得 |
 
+**追加予定（案）**：画面（`frontend/`）はこの形で呼ぶように作ってある。詳しくは「8. 追加予定のAPI」。形を変えるときは、画面の担当にも知らせる。
+
+| # | メソッド | パス | 認証 | 用途 |
+|---|---|---|---|---|
+| 10 | PATCH | `/api/pins/{pinId}` | 🔒 | 自分のピンのスタンプ・メモ・位置を直す |
+| 11 | DELETE | `/api/pins/{pinId}` | 🔒 | 自分のピンを消す |
+| 12 | GET | `/api/me/pins` | 🔒 | 自分のピンの一覧 |
+| 13 | GET | `/api/pins/{pinId}/reactions` | 🌐 | リアクションの数と、自分が押したもの |
+| 14 | GET | `/api/area` | 🌐 | ある地点の市町村・今月の件数・危険度・順位 |
+| 15 | GET | `/api/risk-areas` | 🌐 | 地図の範囲の危険エリア（円） |
+| 16 | POST | `/api/pins/{pinId}/report` | 🔒 | ピンを通報する |
+| 17 | DELETE | `/api/me` | 🔒 | アカウントを消す |
+| — | GET | `/api/me`・`/api/rankings` に項目を追加 | | 下の「8」を参照 |
+
 ---
 
 ## 4. 各APIの詳細
@@ -285,6 +299,107 @@ JWTの検証は**Lambdaで `aws-jwt-verify` を使って行う**（案Fでは AP
 
 - [ ] 項目名（`lat`／`latitude` など）とスタンプの種類
 - [ ] ピンを立てるときのスタンプは必須か任意か
-- [ ] 自分のピンを消す機能は必要か（必要なら `DELETE /pins/{pinId}` を追加）
+- [ ] 自分のピンを消す機能は必要か → 画面は作った（「8」の #11 `DELETE /api/pins/{pinId}`）
 - [ ] 地図に表示する最大件数（200件でよいか）
 - [ ] ランキングの「人」に、プロフィール未登録の人を含めるか
+
+---
+
+## 8. 追加予定のAPI（案）
+
+状態：**提案（Jiji824 さんの確認待ち）**。画面はこの形で呼ぶように作ってある（docs/adr/feature-screens-figma.md）。まだ API がないあいだは、画面にはエラー（`message`）が出る。
+
+共通：エラーの形・`X-Id-Token`・本文の SHA-256（PATCH も付ける）は「2. 共通のルール」と同じ。**ピンの API では userId とニックネームを返さない**（自分のピンの一覧でも同じ）。
+
+### 10. PATCH /api/pins/{pinId} 🔒 自分のピンを直す
+
+画面の使い方：「ここで刺された！」で `POST /api/pins`（スタンプなし・メモなし）をすぐ呼び、そのあと任意でスタンプとメモを付けるときに使う。ピンのメニューの「位置を調整」「コメントを編集」でも使う。
+
+**送るもの**（送った項目だけ変える）
+```json
+{ "stamp": "kayui", "memo": "公園のベンチ" }
+{ "lat": 35.68123, "lng": 139.76712 }
+```
+- `stamp`・`memo` のルールは `POST /api/pins` と同じ（`stamp: null` でスタンプを外す）
+- `lat`・`lng` を送ったら、**サーバーがもう一度100mずらしてから**保存し、市町村も判定し直す（元の座標は保存しない）
+- 自分のピンでなければ `403`（`error: "NOT_OWNER"`）、ピンがなければ `404`
+
+**返すもの（200）**：`POST /api/pins` と同じ形のピン
+
+### 11. DELETE /api/pins/{pinId} 🔒 自分のピンを消す
+
+- 自分のピンでなければ `403`（`NOT_OWNER`）、なければ `404`
+- そのピンのコメント・リアクションも消す。ランキングの件数を減らすかは相談（app-spec F-10）
+
+**返すもの（200）**
+```json
+{ "pinId": "xn76-01JDQ3…" }
+```
+
+### 12. GET /api/me/pins 🔒 自分のピンの一覧
+
+- 新しい順に最大100件。形は `GET /api/pins` の `pins` と同じ（`reactions`・`commentCount` を含む）
+- 画面はこれで「自分のピン」（どのピンが自分のものか）を見分ける
+
+**返すもの（200）**
+```json
+{ "pins": [ { "pinId": "xn76-01JDQ3…", "lat": 35.68, "lng": 139.76, "city": "東京都千代田区", "stamp": "kayui", "memo": "", "createdAt": "2026-11-18T10:30:00+09:00", "commentCount": 2, "reactions": { "odaiji": 3 } } ] }
+```
+
+### 13. GET /api/pins/{pinId}/reactions 🌐 リアクションの数と自分が押したもの
+
+- ピンの詳細を開いたときに呼ぶ。`X-Id-Token` があれば `myReactions` に自分が押したものを入れる。なければ `[]`
+- 形は「7・8」の返すものと同じ
+
+```json
+{ "reactions": { "odaiji": 4, "kaite": 1 }, "myReactions": ["odaiji"] }
+```
+
+### 14. GET /api/area 🌐 ある地点の市町村・件数・危険度・順位
+
+```
+GET /api/area?lat=35.70&lng=139.62
+```
+- 地図の上のカード（地図の中央の地点）と、ランキングの「いまいる市町村の順位」に使う
+- 市町村は国土地理院で判定する（`POST /api/pins` と同じ）。判定できなければ `city` と `prefecture` は `null`
+- `risk`：その市町村の今月の件数から決める `high`／`mid`／`low`（区切りは相談）
+- `prefectureRank`：都道府県の中での、今月の市町村ランキングの順位。0件なら `null`
+- `diffFromLastMonth`：先月と比べた件数の差
+
+```json
+{ "city": "東京都杉並区", "prefecture": "東京都", "monthCount": 128, "risk": "high", "prefectureRank": 3, "diffFromLastMonth": 24 }
+```
+
+### 15. GET /api/risk-areas 🌐 地図の範囲の危険エリア
+
+```
+GET /api/risk-areas?minLat=35.6&maxLat=35.7&minLng=139.6&maxLng=139.8
+```
+- 範囲のルールは `GET /api/pins` と同じ（縦横0.5度まで）
+- ピンが集まっている所を円で返す。画面は `risk` の色（`risk/high`・`mid`・`low`）で塗る
+
+```json
+{ "areas": [ { "lat": 35.70, "lng": 139.62, "radiusM": 300, "risk": "high" } ] }
+```
+
+### 16. POST /api/pins/{pinId}/report 🔒 ピンを通報する
+
+- 送るもの：`{ "reason": "" }`（任意・0〜100文字）
+- 同じ人が同じピンを何度通報しても1回と数える
+- 「非表示にする」は画面だけで行う（その端末で見えなくするだけ。API は使わない）
+
+**返すもの（200）**：`{ "ok": true }`
+
+### 17. DELETE /api/me 🔒 アカウントを消す
+
+- その人のプロフィール・ピン・コメント・リアクションを消し、Cognito のユーザーも消す
+- 画面は、成功したらログアウトして最初の画面に戻る
+
+**返すもの（200）**：`{ "ok": true }`
+
+### 今ある API に足す項目
+
+- `GET /api/me`：`monthCount`（今月立てたピンの数）、`odaijiReceived`（自分のピンがもらった「お大事に」の合計）
+- `GET /api/rankings`：
+  - クエリ `prefecture`（`type=city` のときだけ。例：`東京都`）で、その都道府県の市町村だけの上位20件にする
+  - `type=blood` の `items` に `average`（1人あたりの回数。小数1桁）を足す

@@ -1,12 +1,11 @@
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-export type RiskLevel = 'high' | 'mid' | 'low';
+import type { RiskLevel } from '@/lib/types';
 
 type Props = {
   title: string;
   subtitle: string;
-  // 危険度。null は「まだ分からない」（API 追加待ち）
+  // 危険度。null は「分からない」
   risk?: RiskLevel | null;
 };
 

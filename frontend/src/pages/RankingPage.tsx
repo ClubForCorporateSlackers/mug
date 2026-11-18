@@ -18,7 +18,8 @@ import { api } from '@/lib/api';
 import { idToken } from '@/lib/auth';
 import { PREFECTURES, bloodLabel, currentMonth, monthLabel, recentMonths } from '@/lib/labels';
 import type { TabName } from '@/lib/route';
-import type { Profile, RankItem, RankType } from '@/lib/types';
+import { currentPosition } from '@/lib/location';
+import type { Area, Profile, RankItem, RankType } from '@/lib/types';
 
 // 種類は人・市町村・血液型の3つ（docs/decisions.md #10）
 const TYPES: { value: RankType; label: string }[] = [
@@ -39,15 +40,20 @@ export function RankingPage({ onTab }: Props) {
   // 読み込み済みの「種類と月」。いまの組み合わせと違えば読み込み中
   const [loaded, setLoaded] = useState('');
   const [error, setError] = useState('');
-  const [myBlood, setMyBlood] = useState('');
+  const [me, setMe] = useState<Profile | null>(null);
+  // いまいる市町村（GET /api/area。docs/api-spec.md の #14）
+  const [here, setHere] = useState<Area | null>(null);
   // 絞り込みのシート。filter が C3、prefecture が C4
   const [sheet, setSheet] = useState<'closed' | 'filter' | 'prefecture'>('closed');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     let stop = false;
-    const key = `${type}-${month}`;
-    api<{ items: RankItem[] }>('GET', `/api/rankings?type=${type}&month=${month}`)
+    const key = `${type}-${month}-${prefecture}`;
+    const query = new URLSearchParams({ type, month });
+    // 都道府県は市町村ランキングのときだけ API に渡す（追加予定の prefecture）
+    if (type === 'city' && prefecture !== ALL) query.set('prefecture', prefecture);
+    api<{ items: RankItem[] }>('GET', `/api/rankings?${query}`)
       .then((data) => {
         if (stop) return;
         setItems(data.items);
@@ -62,24 +68,36 @@ export function RankingPage({ onTab }: Props) {
     return () => {
       stop = true;
     };
-  }, [type, month]);
-  const loading = loaded !== `${type}-${month}`;
+  }, [type, month, prefecture]);
+  const loading = loaded !== `${type}-${month}-${prefecture}`;
 
   useEffect(() => {
     void (async () => {
       try {
-        const profile = await api<Profile>('GET', '/api/me', { idToken: await idToken() });
-        if (profile.bloodType !== 'UNKNOWN') setMyBlood(bloodLabel(profile.bloodType));
+        setMe(await api<Profile>('GET', '/api/me', { idToken: await idToken() }));
       } catch {
-        setMyBlood('');
+        setMe(null);
+      }
+    })();
+    void (async () => {
+      try {
+        const point = await currentPosition();
+        setHere(await api<Area>('GET', `/api/area?lat=${point.lat}&lng=${point.lng}`));
+      } catch {
+        setHere(null);
       }
     })();
   }, []);
 
-  // 都道府県の絞り込みは、返ってきた上位20件に対して画面側で行う（API に都道府県の指定がない）
+  // API が都道府県で絞ってくれる。念のため画面でも同じ条件で絞る（結果は変わらない）
   const shown =
     type === 'city' && prefecture !== ALL ? items.filter((item) => item.label.startsWith(prefecture)) : items;
+  // 血液型は、1人あたりの平均（追加予定の average）があればそれを、なければ件数を出す
+  const hasAverage = type === 'blood' && shown.length > 0 && shown.every((item) => item.average !== undefined);
+  const bloodItems = hasAverage ? shown.map((item) => ({ ...item, count: item.average ?? 0 })) : shown;
+  const myBlood = me && me.bloodType !== 'UNKNOWN' ? bloodLabel(me.bloodType) : '';
   const prefectures = useMemo(() => [ALL, ...PREFECTURES].filter((name) => name.includes(search.trim())), [search]);
+  const diff = here ? `先月より ${here.diffFromLastMonth >= 0 ? '+' : ''}${here.diffFromLastMonth}件` : undefined;
 
   return (
     <Screen withTabBar>
@@ -90,19 +108,25 @@ export function RankingPage({ onTab }: Props) {
           {type === 'city' ? <FilterChip onClick={() => setSheet('prefecture')}>{prefecture}</FilterChip> : null}
         </div>
         <SegmentedControl label="ランキングの種類" options={TYPES} value={type} onChange={setType} />
-        {type === 'city' ? (
-          // TODO(API): いまいる市町村の順位（現在地の市町村を返す API が必要）
-          <RankHighlight eyebrow="いまいる市町村の順位" title="準備中です" note="API の追加を待っています" />
+        {type === 'city' && here?.city && here.prefecture && here.prefectureRank ? (
+          <RankHighlight
+            eyebrow={`いまいる${here.city.replace(here.prefecture, '')}は`}
+            title={`${here.prefecture}で ${here.prefectureRank}位`}
+            note={diff}
+          />
         ) : null}
         {error ? <AppNotice tone="error">{error}</AppNotice> : null}
         {type === 'blood' ? (
           <>
             <BloodChart
-              title="血液型ごとの刺された回数"
+              title={hasAverage ? '1人あたりの刺され回数（平均）' : '血液型ごとの刺された回数'}
               unit="回"
-              items={shown}
-              // TODO(API): 自分の今月の回数、1人あたりの平均（Figma C2）
-              footer={myBlood ? `あなた（${myBlood}）の今月の回数は準備中です` : undefined}
+              items={bloodItems}
+              footer={
+                myBlood && me?.monthCount !== undefined
+                  ? `あなた（${myBlood}）は今月 ${me.monthCount}回 刺されています`
+                  : undefined
+              }
             />
             <p className="text-xs font-medium text-muted-foreground">
               ※ 登録された血液型をもとに集計しています。「答えない」は出しません。
@@ -154,12 +178,13 @@ export function RankingPage({ onTab }: Props) {
             <div className="min-h-0 flex-1 overflow-y-auto">
               <OptionList
                 label="都道府県"
-                // TODO(API): 「現在地（東京都）」は現在地の都道府県を返す API ができたら足す
-                options={prefectures.map((name) => ({
-                  value: name,
-                  label: name,
-                  icon: name === ALL ? Navigation : undefined,
-                }))}
+                options={[
+                  // 「現在地（東京都）」。現在地の都道府県が分かったときだけ（#14）
+                  ...(here?.prefecture && !search.trim()
+                    ? [{ value: here.prefecture, label: `現在地（${here.prefecture}）`, icon: Navigation }]
+                    : []),
+                  ...prefectures.map((name) => ({ value: name, label: name })),
+                ]}
                 value={prefecture}
                 onSelect={(value) => {
                   setPrefecture(value);

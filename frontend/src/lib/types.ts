@@ -10,6 +10,9 @@ export type Profile = {
   nickname: string;
   bloodType: BloodType;
   pinCount: number;
+  // 追加予定（docs/api-spec.md の 8）
+  monthCount?: number;
+  odaijiReceived?: number;
 };
 
 export type Pin = {
@@ -35,4 +38,21 @@ export type RankItem = {
   rank: number;
   label: string;
   count: number;
+  // 追加予定：type=blood のときの1人あたりの回数
+  average?: number;
 };
+
+export type RiskLevel = 'high' | 'mid' | 'low';
+
+// 追加予定：GET /api/area（docs/api-spec.md の #14）
+export type Area = {
+  city: string | null;
+  prefecture: string | null;
+  monthCount: number;
+  risk: RiskLevel | null;
+  prefectureRank: number | null;
+  diffFromLastMonth: number;
+};
+
+// 追加予定：GET /api/risk-areas（#15）
+export type RiskArea = { lat: number; lng: number; radiusM: number; risk: RiskLevel };

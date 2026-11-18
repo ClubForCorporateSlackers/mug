@@ -137,14 +137,30 @@ function App() {
           signOut();
           setRoute({ name: 'welcome' });
         }}
+        onOpenPin={(pin) => setRoute({ name: 'map', focus: pin })}
+        onDeleted={() => setRoute({ name: 'welcome' })}
       />
     );
   } else if (route.name === 'myPins') {
-    page = <MyPinsPage onBack={() => setRoute({ name: 'me' })} onMap={() => setRoute({ name: 'map' })} />;
+    page = (
+      <MyPinsPage
+        onBack={() => setRoute({ name: 'me' })}
+        onMap={() => setRoute({ name: 'map' })}
+        onOpenPin={(pin) => setRoute({ name: 'map', focus: pin })}
+      />
+    );
   } else if (route.name === 'editProfile') {
     page = <EditProfilePage onClose={() => setRoute({ name: 'me' })} />;
   } else {
-    page = <MapPage onTab={goTab} onProfile={() => setRoute({ name: 'me' })} />;
+    page = (
+      <MapPage
+        // 開くピンが変わったら地図を作り直す
+        key={route.name === 'map' ? route.focus?.pinId : undefined}
+        focusPin={route.name === 'map' ? route.focus : undefined}
+        onTab={goTab}
+        onProfile={() => setRoute({ name: 'me' })}
+      />
+    );
   }
 
   return <AppFrame>{page}</AppFrame>;
