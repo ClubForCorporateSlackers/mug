@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { MenuRow } from '@/components/MenuRow';
 import { MugButton } from '@/components/MugButton';
+import { SwitchRow } from '@/components/SwitchRow';
 import { bloodLabel } from '@/lib/labels';
 import type { LocationState } from '@/lib/location';
 import type { TabName } from '@/lib/route';
@@ -19,11 +20,23 @@ type Props = {
   onBack: () => void;
   onLogin: () => void;
   onEdit: () => void;
-  onAllowLocation: () => void;
+  locationBusy: boolean;
+  onToggleLocation: (on: boolean) => void;
   onLogout: () => void;
 };
 
-export function MePage({ idToken, email, location, onTab, onBack, onLogin, onEdit, onAllowLocation, onLogout }: Props) {
+export function MePage({
+  idToken,
+  email,
+  location,
+  onTab,
+  onBack,
+  onLogin,
+  onEdit,
+  locationBusy,
+  onToggleLocation,
+  onLogout,
+}: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState('');
@@ -89,11 +102,13 @@ export function MePage({ idToken, email, location, onTab, onBack, onLogin, onEdi
             {error ? <AppNotice tone="error">{error}</AppNotice> : null}
             <section className="divide-y rounded-3xl bg-card">
               <MenuRow icon={Pencil} label={profile ? 'プロフィールを編集' : 'プロフィールを登録'} onClick={onEdit} />
-              <MenuRow
+              <SwitchRow
                 icon={Crosshair}
                 label="位置情報"
-                value={location === 'on' ? 'オン' : 'オフ'}
-                onClick={onAllowLocation}
+                note={location === 'on' ? '現在地からピンを立てられます' : 'オフの間はピンを立てられません'}
+                checked={location === 'on'}
+                disabled={locationBusy}
+                onChange={onToggleLocation}
               />
               <MenuRow icon={LogOut} label="ログアウト" onClick={() => setConfirmLogout(true)} />
             </section>

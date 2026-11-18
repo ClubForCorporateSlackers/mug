@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { HereDot } from '@/components/HereDot';
+import { HerePin } from '@/components/HerePin';
 import { MugMark } from '@/components/MugMark';
 import { PostPin } from '@/components/PostPin';
 
@@ -15,13 +15,13 @@ export function createMugMarker(label: string): HTMLButtonElement {
   return button;
 }
 
-// 現在地の青い点。anchor: 'center' で置く。
+// 現在地。蚊のピンの先に青い点。anchor: 'bottom' で置く。
 export function createHereMarker(): HTMLDivElement {
   const element = document.createElement('div');
   element.className = 'pointer-events-none';
   element.setAttribute('role', 'img');
   element.setAttribute('aria-label', '現在地');
-  createRoot(element).render(<HereDot />);
+  createRoot(element).render(<HerePin />);
   return element;
 }
 

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import '@/lib/map-worker';
-import { AttributionControl, Map, Marker } from 'maplibre-gl';
+import { AttributionControl, GeoJSONSource, Map, Marker } from 'maplibre-gl';
 import { Info, LoaderCircle, MapPin, Navigation, UserRound } from 'lucide-react';
 import { AppNotice } from '@/components/AppNotice';
 import { BottomNav } from '@/components/BottomNav';
+import { CenterMark } from '@/components/CenterMark';
+import { DangerChip } from '@/components/DangerChip';
 import { MugButton } from '@/components/MugButton';
 import { MugMark } from '@/components/MugMark';
 import { api } from '@/lib/api';
+import { dangerAtCenter, groupPins, spotsData, type DangerLevel, type DangerSpot } from '@/lib/danger';
 import { TOKYO_STATION } from '@/lib/geo';
 import type { LatLng, LocationState } from '@/lib/location';
 import { createHereMarker, createMugMarker } from '@/lib/marker';
@@ -67,6 +70,7 @@ export function MapPage({
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
   const [pins, setPins] = useState<Pin[]>([]);
+  const [danger, setDanger] = useState<DangerLevel | null>(null);
 
   useEffect(() => {
     openRef.current = onOpenPin;
@@ -91,6 +95,14 @@ export function MapPage({
     let request = 0;
     let ready = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let spots: DangerSpot[] = [];
+
+    // 近いピンのかたまりを円で描き直す（縮尺が変わると画面の上の距離が変わるので、ズームのたびにも呼ぶ）
+    const paintDanger = () => {
+      spots = groupPins(map, [...latest.values()]);
+      (map.getSource('danger') as GeoJSONSource | undefined)?.setData(spotsData(spots));
+      setDanger(dangerAtCenter(map, spots));
+    };
 
     // 表示中の範囲のピンに入れ替える。古い応答は捨て、同じピンは作り直さない。
     const show = (next: Pin[]) => {
@@ -116,6 +128,7 @@ export function MapPage({
         );
       }
       setPins(next);
+      paintDanger();
     };
 
     const draw = async () => {
@@ -154,9 +167,25 @@ export function MapPage({
 
     // map.loaded() はタイルの読み込み中に false になるので、最初の load が済んだかを自分で持つ
     map.on('load', () => {
+      map.addSource('danger', { type: 'geojson', data: spotsData([]) });
+      map.addLayer({
+        id: 'danger',
+        type: 'circle',
+        source: 'danger',
+        paint: {
+          'circle-radius': ['get', 'radius'],
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.55,
+          'circle-blur': 0.15,
+        },
+      });
       ready = true;
       setLoaded(true);
       void draw();
+    });
+    map.on('move', () => setDanger(dangerAtCenter(map, spots)));
+    map.on('zoomend', () => {
+      if (ready) paintDanger();
     });
     map.on('moveend', () => {
       if (ready) schedule();
@@ -193,7 +222,7 @@ export function MapPage({
     }
     const lngLat: [number, number] = [position.lng, position.lat];
     if (hereRef.current) hereRef.current.setLngLat(lngLat);
-    else hereRef.current = new Marker({ element: createHereMarker(), anchor: 'center' }).setLngLat(lngLat).addTo(map);
+    else hereRef.current = new Marker({ element: createHereMarker(), anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
     if (!centeredRef.current) {
       centeredRef.current = true;
       map.jumpTo({ center: lngLat, zoom: 15 });
@@ -212,6 +241,9 @@ export function MapPage({
     <main className="flex h-svh flex-col">
       <div className="relative min-h-0 flex-1">
         <div ref={holder} className="h-full w-full" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <CenterMark />
+        </div>
         {!loaded || location === 'pending' ? (
           <div className="absolute inset-0 grid place-items-center bg-background" role="status">
             <div className="flex flex-col items-center gap-2 text-sm font-bold">
@@ -224,10 +256,11 @@ export function MapPage({
           <div className="flex items-center gap-2">
             <div className="pointer-events-auto flex flex-1 items-center gap-2 rounded-full bg-card px-4 py-2">
               <MapPin className="size-5 shrink-0 text-primary" aria-hidden />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{place}</p>
                 <p className="text-xs">この範囲に {pins.length}件の刺されピン</p>
               </div>
+              {danger ? <DangerChip level={danger} /> : null}
             </div>
             <button
               type="button"

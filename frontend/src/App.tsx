@@ -4,8 +4,10 @@ import { ApiError, api } from '@/lib/api';
 import { currentSession, signOut, type Session } from '@/lib/auth';
 import {
   getPosition,
+  isLocationOff,
   locationPermission,
   markAsked,
+  setLocationOff,
   wasAsked,
   watchPosition,
   type LatLng,
@@ -44,6 +46,7 @@ function App() {
   const requestLocation = useCallback(async () => {
     setAsking(true);
     markAsked();
+    setLocationOff(false);
     try {
       setPosition(await getPosition());
       setLocation('on');
@@ -65,6 +68,12 @@ function App() {
   const goMap = useCallback(async () => {
     if (locationDecided.current) {
       setRoute({ name: 'map' });
+      return;
+    }
+    if (isLocationOff()) {
+      locationDecided.current = true;
+      setRoute({ name: 'map' });
+      setLocation('off');
       return;
     }
     const state = await locationPermission();
@@ -147,6 +156,17 @@ function App() {
     }
   }
 
+  function toggleLocation(on: boolean) {
+    if (on) {
+      void requestLocation();
+      return;
+    }
+    setLocationOff(true);
+    setLocation('off');
+    setPosition(null);
+    setLocationHint('');
+  }
+
   function logout() {
     signOut();
     setSession(null);
@@ -163,7 +183,7 @@ function App() {
 
   let page;
   if (route.name === 'splash') {
-    page = <SplashPage onStart={() => void goMap()} onLogin={() => setRoute({ name: 'login' })} />;
+    page = <SplashPage onStart={() => setRoute({ name: 'signup' })} onLogin={() => setRoute({ name: 'login' })} />;
   } else if (route.name === 'locate') {
     page = <LocationPage busy={asking} onAllow={() => decideLocation(true)} onLater={() => decideLocation(false)} />;
   } else if (route.name === 'login') {
@@ -247,7 +267,8 @@ function App() {
           if (session) setRoute({ name: 'profile', next: { name: 'me' } });
           else setRoute({ name: 'login', next: { name: 'me' } });
         }}
-        onAllowLocation={() => void requestLocation()}
+        locationBusy={asking}
+        onToggleLocation={toggleLocation}
         onLogout={logout}
       />
     );

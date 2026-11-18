@@ -49,6 +49,18 @@ export async function locationPermission(): Promise<PermissionState | 'unknown'>
   }
 }
 
+// マイページで「位置情報」をオフにしたか。オンかオフかだけを残し、位置は保存しない。
+const OFF_KEY = 'mug.locationOff';
+
+export function isLocationOff(): boolean {
+  return localStorage.getItem(OFF_KEY) === '1';
+}
+
+export function setLocationOff(off: boolean): void {
+  if (off) localStorage.setItem(OFF_KEY, '1');
+  else localStorage.removeItem(OFF_KEY);
+}
+
 export function wasAsked(): boolean {
   return localStorage.getItem(ASKED_KEY) === '1';
 }
