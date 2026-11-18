@@ -137,8 +137,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* ページの外側の色は、下のタブと同じ白にする。iPhone の画面下の安全な領域（Safari のツールバーの裏など）に、この色が見える。
+     画面の上（時計・バッテリーの所）は index.html の theme-color と、各画面の上端の色（クリーム色・黄色）のまま。
+     引っ張ったときに伸びる動き（バウンス）を止め、上の端に外側の白が見えないようにする */
+  html,
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-card;
+    overscroll-behavior-y: none;
+  }
+  body {
+    @apply text-foreground antialiased;
     font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', sans-serif;
   }
 }
