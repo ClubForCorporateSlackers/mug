@@ -82,6 +82,9 @@ npm run dev
 - PR には画面のプレビューURLと、その下の Storybook（`<プレビューURL>/storybook/`）のURLがコメントされます
 - PR の CI（`.github/workflows/frontend.yml`）：整形のチェック・lint・ビルド・Storybook のビルド・Lighthouse。ほかに CodeQL（`codeql.yml`）が全体を調べます
 - APIができるまでは、docs/api-spec.md の例をダミーデータとして使って画面を作ってください。
+- **デモ用アカウントで入る**：`.env` に `VITE_DEMO_EMAIL` と `VITE_DEMO_PASSWORD` を書くと、最初の画面に「デモ用アカウントで入る」が出ます。押すとそのアカウントで本当にログインし、本物の API で投稿やマイページを試せます。
+  - アカウントは画面の「はじめる（新規登録）」で、デモ専用に作ってください（本人のアカウントは使わない）
+  - この値は画面の JavaScript に入るので、画面を開いた人は取り出せます。デモが終わったら値を消して、パスワードを変えてください
 
 ### バックエンド（小松）
 

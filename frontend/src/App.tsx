@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppFrame } from '@/components/AppFrame';
 import { MascotCircle } from '@/components/MascotCircle';
 import { ApiError, api } from '@/lib/api';
-import { currentSession, signOut, type Session } from '@/lib/auth';
+import { DEMO_ENABLED, authMessage, currentSession, signInDemo, signOut, type Session } from '@/lib/auth';
 import { locationState } from '@/lib/location';
 import type { Route, TabName } from '@/lib/route';
 import type { Profile } from '@/lib/types';
@@ -34,6 +34,8 @@ async function nextAfterLogin(session: Session): Promise<Route> {
 
 function App() {
   const [route, setRoute] = useState<Route | null>(null);
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoError, setDemoError] = useState('');
 
   useEffect(() => {
     void currentSession().then(async (session) =>
@@ -42,6 +44,18 @@ function App() {
   }, []);
 
   const enter = useCallback(async (session: Session) => setRoute(await nextAfterLogin(session)), []);
+  // デモ用アカウントで本当にログインする（投稿やマイページも、そのまま本物の API で使える）
+  const enterDemo = useCallback(async () => {
+    setDemoBusy(true);
+    setDemoError('');
+    try {
+      await enter(await signInDemo());
+    } catch (err) {
+      setDemoError(authMessage(err));
+    } finally {
+      setDemoBusy(false);
+    }
+  }, [enter]);
   const goTab = useCallback((tab: TabName) => setRoute({ name: tab } as Route), []);
   const afterSetup = useCallback(
     async () => setRoute((await locationState()) === 'prompt' ? { name: 'location' } : { name: 'map' }),
@@ -56,7 +70,15 @@ function App() {
       </div>
     );
   } else if (route.name === 'welcome') {
-    page = <WelcomePage onStart={() => setRoute({ name: 'signup' })} onLogin={() => setRoute({ name: 'login' })} />;
+    page = (
+      <WelcomePage
+        onStart={() => setRoute({ name: 'signup' })}
+        onLogin={() => setRoute({ name: 'login' })}
+        onDemo={DEMO_ENABLED ? () => void enterDemo() : undefined}
+        demoBusy={demoBusy}
+        demoError={demoError}
+      />
+    );
   } else if (route.name === 'signup') {
     page = (
       <SignUpPage

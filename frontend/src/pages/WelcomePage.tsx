@@ -1,13 +1,21 @@
 import { BarChart2, Map, MapPin } from 'lucide-react';
+import { AppNotice } from '@/components/AppNotice';
 import { InfoRow } from '@/components/InfoRow';
 import { MugButton } from '@/components/MugButton';
 import { MugMark } from '@/components/MugMark';
 import { Screen } from '@/components/Screen';
 
-type Props = { onStart: () => void; onLogin: () => void };
+type Props = {
+  onStart: () => void;
+  onLogin: () => void;
+  // デモ用アカウントが設定されているときだけ渡す
+  onDemo?: () => void;
+  demoBusy?: boolean;
+  demoError?: string;
+};
 
 // A1 ようこそ
-export function WelcomePage({ onStart, onLogin }: Props) {
+export function WelcomePage({ onStart, onLogin, onDemo, demoBusy = false, demoError }: Props) {
   return (
     <Screen tone="brand">
       <div className="flex flex-1 flex-col items-center gap-4 px-4 pt-14 text-center">
@@ -29,6 +37,12 @@ export function WelcomePage({ onStart, onLogin }: Props) {
         <MugButton tone="plain" onClick={onLogin}>
           ログイン
         </MugButton>
+        {onDemo ? (
+          <MugButton tone="plain" className="h-10 text-[15px] font-medium" disabled={demoBusy} onClick={onDemo}>
+            {demoBusy ? 'デモの準備中…' : 'デモ用アカウントで入る'}
+          </MugButton>
+        ) : null}
+        {demoError ? <AppNotice tone="error">{demoError}</AppNotice> : null}
       </div>
     </Screen>
   );

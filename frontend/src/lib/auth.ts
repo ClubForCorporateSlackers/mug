@@ -93,6 +93,16 @@ export function confirmPassword(email: string, code: string, password: string): 
   });
 }
 
+// デモ用アカウント。値は .env にだけ置く（コードやリポジトリに書かない）
+const demoEmail = import.meta.env.VITE_DEMO_EMAIL ?? '';
+const demoPassword = import.meta.env.VITE_DEMO_PASSWORD ?? '';
+export const DEMO_ENABLED = demoEmail !== '' && demoPassword !== '';
+
+// 「デモで入る」。デモ用アカウントで本当にログインするので、本物の API がそのまま使える
+export function signInDemo(): Promise<Session> {
+  return signIn(demoEmail, demoPassword);
+}
+
 export function signOut(): void {
   pool.getCurrentUser()?.signOut();
 }
