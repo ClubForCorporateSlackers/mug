@@ -16,3 +16,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+export const Long: Story = {
+  args: {
+    children: (
+      <div className="flex flex-col gap-4">
+        {Array.from({ length: 30 }, (_, i) => (
+          <p key={i}>{i + 1}行目</p>
+        ))}
+      </div>
+    ),
+  },
+};
