@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MugMark } from '@/components/MugMark';
+import { inJapan } from '@/lib/geo';
 import { ApiError, api } from '@/lib/api';
 import { currentSession, signOut, type Session } from '@/lib/auth';
 import {
@@ -156,9 +157,14 @@ function App() {
     [go],
   );
 
-  // 「ここで刺された！」を押したら、その場で現在地にピンを立てる
-  async function postHere() {
+  // 「ここで刺された！」を押したら、その場で地図の真ん中（真ん中のピンの先）にピンを立てる。
+  // 地図は最初は現在地が真ん中なので、動かさなければ現在地に立つ
+  async function postHere(point: { lat: number; lng: number }) {
     if (location !== 'on' || !position || posting) return;
+    if (!inJapan(point.lat, point.lng)) {
+      setPostError('日本の範囲の中で場所を選んでください');
+      return;
+    }
     if (!session) {
       push({ name: 'login', next: { name: 'map' } });
       return;
@@ -168,7 +174,7 @@ function App() {
     try {
       const pin = await api<Pin>('POST', '/api/pins', {
         idToken: session.idToken,
-        body: { lat: position.lat, lng: position.lng, stamp: null, memo: '' },
+        body: { lat: point.lat, lng: point.lng, stamp: null, memo: '' },
       });
       setPostedPins((list) => [...list, pin]);
       setPinsVersion((value) => value + 1);
@@ -323,7 +329,7 @@ function App() {
         postError={postError}
         pinsVersion={pinsVersion}
         postedPins={postedPins}
-        onPost={() => void postHere()}
+        onPost={(point) => void postHere(point)}
         onOpenPin={(pin) => push({ name: 'pin', pin })}
         onMe={() => push({ name: 'me' })}
         onAllowLocation={() => void requestLocation()}

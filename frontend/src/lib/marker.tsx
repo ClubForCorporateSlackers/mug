@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { HerePin } from '@/components/HerePin';
+import { HereDot } from '@/components/HereDot';
 import { MugMark } from '@/components/MugMark';
 // MapLibre に渡す DOM。蚊のピンは口の先（下の端）が地点なので anchor: 'bottom' で置く。
 
@@ -13,12 +13,13 @@ export function createMugMarker(label: string): HTMLButtonElement {
   return button;
 }
 
-// 現在地。蚊のピンの先に青い点。anchor: 'bottom' で置く。
+// 現在地。青い丸（中心が地点）。anchor: 'center' で置く。
+// 蚊のピンは地図の真ん中に固定する CenterPin だけにする（現在地にも蚊を出すと、地図を動かしたときに2匹に見える）
 export function createHereMarker(): HTMLDivElement {
   const element = document.createElement('div');
   element.className = 'pointer-events-none';
   element.setAttribute('role', 'img');
   element.setAttribute('aria-label', '現在地');
-  createRoot(element).render(<HerePin />);
+  createRoot(element).render(<HereDot />);
   return element;
 }

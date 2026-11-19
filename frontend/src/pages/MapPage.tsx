@@ -4,7 +4,7 @@ import { AttributionControl, GeoJSONSource, Map, Marker } from 'maplibre-gl';
 import { Info, LoaderCircle, MapPin, Navigation, UserRound } from 'lucide-react';
 import { AppNotice } from '@/components/AppNotice';
 import { BottomNav } from '@/components/BottomNav';
-import { CenterMark } from '@/components/CenterMark';
+import { CenterPin } from '@/components/CenterPin';
 import { DangerChip } from '@/components/DangerChip';
 import { MugButton } from '@/components/MugButton';
 import { MugMark } from '@/components/MugMark';
@@ -30,7 +30,8 @@ type Props = {
   pinsVersion: number;
   // この画面を開いているあいだに立てたピン（投稿の直後の読み直しに、まだ入っていないことがある）
   postedPins: Pin[];
-  onPost: () => void;
+  // 地図の真ん中（真ん中のピンの先）の場所でピンを立てる
+  onPost: (point: { lat: number; lng: number }) => void;
   onOpenPin: (pin: Pin) => void;
   onMe: () => void;
   onAllowLocation: () => void;
@@ -254,7 +255,7 @@ export function MapPage({
     }
     const lngLat: [number, number] = [position.lng, position.lat];
     if (hereRef.current) hereRef.current.setLngLat(lngLat);
-    else hereRef.current = new Marker({ element: createHereMarker(), anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
+    else hereRef.current = new Marker({ element: createHereMarker(), anchor: 'center' }).setLngLat(lngLat).addTo(map);
     if (!centeredRef.current) {
       centeredRef.current = true;
       map.jumpTo({ center: lngLat, zoom: 15 });
@@ -264,6 +265,11 @@ export function MapPage({
   useEffect(() => {
     if (pinsVersion > 0) reloadRef.current?.();
   }, [pinsVersion]);
+
+  function postAtCenter() {
+    const center = mapRef.current?.getCenter();
+    if (center) onPost({ lat: center.lat, lng: center.lng });
+  }
 
   function locate() {
     if (position) mapRef.current?.flyTo({ center: [position.lng, position.lat], zoom: 15 });
@@ -277,8 +283,9 @@ export function MapPage({
     <main className="flex h-svh flex-col">
       <div className="relative min-h-0 flex-1">
         <div ref={holder} className="h-full w-full" />
-        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <CenterMark />
+        {/* ピンの口の先（下の端）が地図の真ん中にくるように置く */}
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full">
+          <CenterPin />
         </div>
         {!loaded || location === 'pending' ? (
           <div className="absolute inset-0 grid place-items-center bg-background" role="status">
@@ -325,7 +332,11 @@ export function MapPage({
         </div>
         <div className="pointer-events-none absolute inset-x-3 bottom-11 flex flex-col items-end gap-3">
           <RoundIconButton icon={Navigation} label="現在地へ" onClick={locate} className="pointer-events-auto" />
-          <MugButton className="pointer-events-auto h-14 gap-3 text-lg" onClick={onPost} disabled={!canPost || posting}>
+          <MugButton
+            className="pointer-events-auto h-14 gap-3 text-lg"
+            onClick={postAtCenter}
+            disabled={!canPost || posting}
+          >
             <MugMark className="size-9 rounded-full bg-secondary p-1" decorative />
             {posting
               ? 'ピンを立てています'
