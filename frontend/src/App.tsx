@@ -16,7 +16,6 @@ import {
 import type { Route, TabName } from '@/lib/route';
 import type { Pin, Profile } from '@/lib/types';
 import { AboutPage } from '@/pages/AboutPage';
-import { ComposePage } from '@/pages/ComposePage';
 import { ConfirmPage } from '@/pages/ConfirmPage';
 import { LocationPage } from '@/pages/LocationPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -41,6 +40,9 @@ function App() {
   const [location, setLocation] = useState<LocationState>('pending');
   const [locationHint, setLocationHint] = useState('');
   const [asking, setAsking] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+  const [pinsVersion, setPinsVersion] = useState(0);
   const locationDecided = useRef(false);
 
   const requestLocation = useCallback(async () => {
@@ -130,18 +132,29 @@ function App() {
     [go],
   );
 
-  async function openCompose() {
-    if (location !== 'on') return;
+  // 「ここで刺された！」を押したら、その場で現在地にピンを立てる
+  async function postHere() {
+    if (location !== 'on' || !position || posting) return;
     if (!session) {
-      setRoute({ name: 'login', next: { name: 'compose' } });
+      setRoute({ name: 'login', next: { name: 'map' } });
       return;
     }
+    setPosting(true);
+    setPostError('');
     try {
-      await api<Profile>('GET', '/api/me', { idToken: session.idToken });
-      setRoute({ name: 'compose' });
+      const pin = await api<Pin>('POST', '/api/pins', {
+        idToken: session.idToken,
+        body: { lat: position.lat, lng: position.lng, stamp: null, memo: '' },
+      });
+      setPinsVersion((value) => value + 1);
+      setRoute({ name: 'pin', pin });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) setRoute({ name: 'profile', next: { name: 'compose' } });
-      else setRoute({ name: 'compose' });
+      if (err instanceof ApiError && err.code === 'PROFILE_REQUIRED')
+        setRoute({ name: 'profile', next: { name: 'map' } });
+      else if (err instanceof ApiError && err.status === 401) setRoute({ name: 'login', next: { name: 'map' } });
+      else setPostError(err instanceof Error ? err.message : 'ピンを立てられませんでした');
+    } finally {
+      setPosting(false);
     }
   }
 
@@ -193,7 +206,6 @@ function App() {
         onBack={() => {
           const next = route.next;
           if (!next) setRoute({ name: 'splash' });
-          else if (next.name === 'compose') go({ name: 'map' });
           else go(next);
         }}
         onSignedIn={(value) => void enter(value, route.next)}
@@ -241,15 +253,6 @@ function App() {
         onSaved={() => go(route.next ?? { name: 'map' })}
       />
     );
-  } else if (route.name === 'compose' && session && position) {
-    page = (
-      <ComposePage
-        idToken={session.idToken}
-        start={position}
-        onBack={() => go({ name: 'map' })}
-        onPosted={(pin: Pin) => setRoute({ name: 'pin', pin })}
-      />
-    );
   } else if (route.name === 'ranking') {
     page = <RankingPage tab="ranking" onTab={goTab} />;
   } else if (route.name === 'about') {
@@ -280,7 +283,10 @@ function App() {
         location={location}
         locationHint={locationHint}
         onTab={goTab}
-        onCompose={() => void openCompose()}
+        posting={posting}
+        postError={postError}
+        pinsVersion={pinsVersion}
+        onPost={() => void postHere()}
         onOpenPin={(pin) => setRoute({ name: 'pin', pin })}
         onMe={() => setRoute({ name: 'me' })}
         onAllowLocation={() => void requestLocation()}

@@ -1,8 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { HerePin } from '@/components/HerePin';
 import { MugMark } from '@/components/MugMark';
-import { PostPin } from '@/components/PostPin';
-
 // MapLibre に渡す DOM。蚊のピンは口の先（下の端）が地点なので anchor: 'bottom' で置く。
 
 // 投稿されたピン。クリックはページ側で付ける。
@@ -22,15 +20,5 @@ export function createHereMarker(): HTMLDivElement {
   element.setAttribute('role', 'img');
   element.setAttribute('aria-label', '現在地');
   createRoot(element).render(<HerePin />);
-  return element;
-}
-
-// これから立てるピン。anchor: 'bottom' で置く。
-export function createPostMarker(label: string): HTMLDivElement {
-  const element = document.createElement('div');
-  element.className = 'pointer-events-none';
-  element.setAttribute('role', 'img');
-  element.setAttribute('aria-label', label);
-  createRoot(element).render(<PostPin />);
   return element;
 }

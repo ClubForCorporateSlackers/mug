@@ -13,7 +13,6 @@ export type Route =
   | { name: 'resetConfirm'; email: string; next?: Route }
   | { name: 'profile'; next?: Route }
   | { name: 'map' }
-  | { name: 'compose' }
   | { name: 'pin'; pin: Pin }
   | { name: 'ranking' }
   | { name: 'about' }

@@ -22,7 +22,11 @@ type Props = {
   location: LocationState;
   locationHint?: string;
   onTab: (tab: TabName) => void;
-  onCompose: () => void;
+  posting: boolean;
+  postError?: string;
+  // 増えたらピンを読み直す（自分がピンを立てた直後など）
+  pinsVersion: number;
+  onPost: () => void;
   onOpenPin: (pin: Pin) => void;
   onMe: () => void;
   onAllowLocation: () => void;
@@ -54,7 +58,10 @@ export function MapPage({
   location,
   locationHint,
   onTab,
-  onCompose,
+  posting,
+  postError,
+  pinsVersion,
+  onPost,
   onOpenPin,
   onMe,
   onAllowLocation,
@@ -66,6 +73,7 @@ export function MapPage({
   const hereRef = useRef<Marker | null>(null);
   const centeredRef = useRef(position !== null);
   const openRef = useRef(onOpenPin);
+  const reloadRef = useRef<(() => void) | null>(null);
   const startRef = useRef(position ?? TOKYO_STATION);
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
@@ -196,9 +204,13 @@ export function MapPage({
       if (ready && document.visibilityState === 'visible') void draw();
     };
     const poll = setInterval(refresh, 30000);
+    reloadRef.current = () => {
+      if (ready) void draw();
+    };
     document.addEventListener('visibilitychange', refresh);
 
     return () => {
+      reloadRef.current = null;
       clearInterval(poll);
       document.removeEventListener('visibilitychange', refresh);
       clearTimeout(timer);
@@ -228,6 +240,10 @@ export function MapPage({
       map.jumpTo({ center: lngLat, zoom: 15 });
     }
   }, [position]);
+
+  useEffect(() => {
+    if (pinsVersion > 0) reloadRef.current?.();
+  }, [pinsVersion]);
 
   function locate() {
     if (position) mapRef.current?.flyTo({ center: [position.lng, position.lat], zoom: 15 });
@@ -289,6 +305,11 @@ export function MapPage({
               <AppNotice>{locationHint}</AppNotice>
             </div>
           ) : null}
+          {postError ? (
+            <div className="pointer-events-auto">
+              <AppNotice tone="error">{postError}</AppNotice>
+            </div>
+          ) : null}
           {notice ? (
             <div className="pointer-events-auto">
               <AppNotice>{notice}</AppNotice>
@@ -304,9 +325,15 @@ export function MapPage({
           >
             <Navigation className="size-5" aria-hidden />
           </button>
-          <MugButton className="pointer-events-auto h-14 gap-3 text-lg" onClick={onCompose} disabled={!canPost}>
+          <MugButton className="pointer-events-auto h-14 gap-3 text-lg" onClick={onPost} disabled={!canPost || posting}>
             <MugMark className="size-9 rounded-full bg-secondary p-1" decorative />
-            {canPost ? 'ここで刺された！' : location === 'off' ? '位置情報がオフです' : '現在地を確認しています'}
+            {posting
+              ? 'ピンを立てています'
+              : canPost
+                ? 'ここで刺された！'
+                : location === 'off'
+                  ? '位置情報がオフです'
+                  : '現在地を確認しています'}
           </MugButton>
         </div>
       </div>
