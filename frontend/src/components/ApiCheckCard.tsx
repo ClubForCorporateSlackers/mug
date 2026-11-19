@@ -12,7 +12,7 @@ export function ApiCheckCard({ result, onCheck }: Props) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>mug</CardTitle>
+        <CardTitle>むふ</CardTitle>
         <CardDescription>ここで蚊に刺された、を地図で共有する</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
