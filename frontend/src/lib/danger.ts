@@ -6,12 +6,18 @@ export type DangerLevel = 'low' | 'mid' | 'high';
 
 export const DANGER_LABELS: Record<DangerLevel, string> = { low: '小', mid: '中', high: '大' };
 
-// かたまりの円の半径（画面の px）。地図の色は MapLibre の描画に直接渡すので、トークンではなく値で持つ。
-export const DANGER_STYLE: Record<DangerLevel, { radius: number; color: string }> = {
-  low: { radius: 38, color: '#f7dc85' },
-  mid: { radius: 52, color: '#f5b971' },
-  high: { radius: 68, color: '#ef9a7a' },
+// かたまりの円の半径（画面の px）
+export const DANGER_STYLE: Record<DangerLevel, { radius: number }> = {
+  low: { radius: 38 },
+  mid: { radius: 52 },
+  high: { radius: 68 },
 };
+
+// 円の色。MapLibre には色の値を渡す必要があるので、index.css の --danger-low・mid・high から読む
+// （frontend/AGENTS.md：色の値はコードに直接書かない）
+function dangerColor(level: DangerLevel): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(`--danger-${level}`).trim();
+}
 
 // この距離（画面の px）より近いピンを同じかたまりにする
 const GROUP_PX = 64;
@@ -63,7 +69,7 @@ export function spotsData(spots: DangerSpot[]) {
     type: 'FeatureCollection' as const,
     features: spots.map((spot) => ({
       type: 'Feature' as const,
-      properties: { radius: DANGER_STYLE[spot.level].radius, color: DANGER_STYLE[spot.level].color },
+      properties: { radius: DANGER_STYLE[spot.level].radius, color: dangerColor(spot.level) },
       geometry: { type: 'Point' as const, coordinates: [spot.lng, spot.lat] },
     })),
   };

@@ -56,6 +56,10 @@
   --background: oklch(0.94 0.055 98);
   --foreground: oklch(0.3 0.03 265);
   --card: oklch(0.985 0.015 98);
+  /* 地図の危険度の円（lib/danger.ts が読む） */
+  --danger-low: #f7dc85;
+  --danger-mid: #f5b971;
+  --danger-high: #ef9a7a;
   --card-foreground: oklch(0.3 0.03 265);
   --popover: oklch(0.985 0.015 98);
   --popover-foreground: oklch(0.3 0.03 265);

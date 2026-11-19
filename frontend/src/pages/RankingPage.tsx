@@ -10,9 +10,11 @@ import { currentMonth, monthLabel, prefectureName, shiftMonth } from '@/lib/labe
 import type { TabName } from '@/lib/route';
 import type { RankItem, RankType } from '@/lib/types';
 
+// 種類は人・市町村・血液型の3つ（docs/decisions.md #10）
 const SEGMENTS: { id: RankType; label: string }[] = [
-  { id: 'city', label: '刺された回数' },
-  { id: 'blood', label: '血液型別' },
+  { id: 'user', label: '人' },
+  { id: 'city', label: '市町村' },
+  { id: 'blood', label: '血液型' },
 ];
 
 const ALL = 'すべての地域';
@@ -108,7 +110,7 @@ export function RankingPage({ tab, onTab }: Props) {
             </button>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 rounded-full bg-muted p-1" role="tablist">
+        <div className="grid grid-cols-3 rounded-full bg-muted p-1" role="tablist">
           {SEGMENTS.map((segment) => (
             <button
               key={segment.id}
