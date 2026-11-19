@@ -4,7 +4,7 @@ import { MugStack } from '../lib/mug-stack';
 
 const template = Template.fromStack(new MugStack(new cdk.App(), 'TestStack'));
 
-test('DynamoDB はプロビジョンドで5テーブル、合計 読み書き各25ユニット以内', () => {
+test('DynamoDB はプロビジョンドで5テーブル、索引（GSI）を含めた合計 読み書き各25ユニット以内', () => {
   const tables = Object.values(template.findResources('AWS::DynamoDB::Table'));
   expect(tables).toHaveLength(5);
   let read = 0;
@@ -16,9 +16,35 @@ test('DynamoDB はプロビジョンドで5テーブル、合計 読み書き各
     expect(t.DeletionPolicy).toBe('Delete');
     read += t.Properties.ProvisionedThroughput.ReadCapacityUnits;
     write += t.Properties.ProvisionedThroughput.WriteCapacityUnits;
+    // 索引も無料枠の25に数えられる
+    for (const gsi of t.Properties.GlobalSecondaryIndexes ?? []) {
+      read += gsi.ProvisionedThroughput.ReadCapacityUnits;
+      write += gsi.ProvisionedThroughput.WriteCapacityUnits;
+    }
   }
   expect(read).toBeLessThanOrEqual(25);
   expect(write).toBeLessThanOrEqual(25);
+});
+
+test('Pins の索引 byUser：userId＋sk、全項目、書き3・読み2。索引はこれ1つだけ', () => {
+  const tables = Object.values(template.findResources('AWS::DynamoDB::Table'));
+  const withGsi = tables.filter((t) => t.Properties.GlobalSecondaryIndexes);
+  expect(withGsi).toHaveLength(1);
+  expect(withGsi[0].Properties.KeySchema).toEqual([
+    { AttributeName: 'cell', KeyType: 'HASH' },
+    { AttributeName: 'sk', KeyType: 'RANGE' },
+  ]);
+  expect(withGsi[0].Properties.GlobalSecondaryIndexes).toEqual([
+    {
+      IndexName: 'byUser',
+      KeySchema: [
+        { AttributeName: 'userId', KeyType: 'HASH' },
+        { AttributeName: 'sk', KeyType: 'RANGE' },
+      ],
+      Projection: { ProjectionType: 'ALL' },
+      ProvisionedThroughput: { ReadCapacityUnits: 2, WriteCapacityUnits: 3 },
+    },
+  ]);
 });
 
 test('Lambda は同時実行数の上限10、ログは1週間で削除可能', () => {
@@ -96,6 +122,7 @@ test('Lambda に Cognito の ID とテーブル名を環境変数で渡す', () 
         USER_POOL_CLIENT_ID: Match.anyValue(),
         USERS_TABLE_NAME: Match.anyValue(),
         PINS_TABLE_NAME: Match.anyValue(),
+        PINS_USER_INDEX_NAME: 'byUser',
         RANKINGS_TABLE_NAME: Match.anyValue(),
         COMMENTS_TABLE_NAME: Match.anyValue(),
         REACTIONS_TABLE_NAME: Match.anyValue(),
@@ -111,18 +138,27 @@ test('Lambda の DynamoDB 権限は、テーブルごとに必要な操作だけ
     .flatMap((p) => p.Properties.PolicyDocument.Statement)
     .filter((s) => [s.Action].flat().some((a: string) => a.startsWith('dynamodb:')));
 
-  // テーブル → 許可した操作
+  // テーブル（索引は「テーブルのID/index/索引名」）→ 許可した操作
   const granted: Record<string, string[]> = {};
   for (const s of dynamoStatements) {
     const resources = [s.Resource].flat();
-    expect(resources).toHaveLength(1); // 1つの文で1つのテーブルだけ
-    const id = resources[0]['Fn::GetAtt']?.[0];
+    expect(resources).toHaveLength(1); // 1つの文で1つのテーブル（索引）だけ
+    let id: string | undefined = resources[0]['Fn::GetAtt']?.[0];
+    const join = resources[0]['Fn::Join'];
+    if (join) {
+      // 索引の ARN：[テーブルの ARN, '/index/byUser'] をつないだもの
+      const [tableArn, suffix] = join[1];
+      expect(suffix).toMatch(/^\/index\/[A-Za-z]+$/); // ワイルドカード（/index/*）ではない
+      id = `${tableArn['Fn::GetAtt'][0]}${suffix}`;
+    }
     expect(id).toBeDefined(); // '*' や文字列の ARN ではない
-    granted[id] = [...(granted[id] ?? []), ...[s.Action].flat()].sort();
+    granted[id!] = [...(granted[id!] ?? []), ...[s.Action].flat()].sort();
   }
   expect(granted).toEqual({
     [idOf('Users')!]: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
     [idOf('Pins')!]: ['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:UpdateItem'],
+    // 自分のピンの一覧。索引には Query だけ
+    [`${idOf('Pins')!}/index/byUser`]: ['dynamodb:Query'],
     [idOf('Comments')!]: ['dynamodb:DeleteItem', 'dynamodb:PutItem', 'dynamodb:Query'],
     // DeleteItem はスタンプの取り消しと、ピンを消したときの片付け。Query はピンを消したときに探すため
     [idOf('Reactions')!]: ['dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:Query'],

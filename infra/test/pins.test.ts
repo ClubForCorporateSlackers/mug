@@ -30,6 +30,31 @@ test('地図の取得は cell ごとの Query（新しい順・Limit 付き）�
   expect(names).toContain('createdAt');
 });
 
+test('自分のピンは索引 byUser への Query（新しい順・Limit 付き）。userId・cityCode・bloodType は読まない', async () => {
+  const send = jest.spyOn(DynamoDBDocumentClient.prototype, 'send').mockResolvedValue({ Items: [{ pinId: 'p' }] } as never);
+  const res = await createDynamoPinsRepo('PinsTable', 'byUser').queryByUser('user-1', 100);
+
+  expect(res).toEqual([{ pinId: 'p' }]);
+  expect(send).toHaveBeenCalledTimes(1);
+  const command = send.mock.calls[0][0] as QueryCommand;
+  expect(command).toBeInstanceOf(QueryCommand);
+  expect(command.input).toMatchObject({
+    TableName: 'PinsTable',
+    IndexName: 'byUser',
+    KeyConditionExpression: '#uid = :uid',
+    ExpressionAttributeValues: { ':uid': 'user-1' },
+    ScanIndexForward: false,
+    Limit: 100,
+  });
+  const projected = (command.input.ProjectionExpression ?? '')
+    .split(', ')
+    .map((n) => command.input.ExpressionAttributeNames?.[n]);
+  expect(projected).not.toContain('userId');
+  expect(projected).not.toContain('cityCode');
+  expect(projected).not.toContain('bloodType');
+  expect(projected).toEqual(expect.arrayContaining(['cell', 'sk', 'pinId', 'commentCount', 'reactions', 'createdAt']));
+});
+
 test('ピンの保存は PutItem 1回', async () => {
   const send = jest.spyOn(DynamoDBDocumentClient.prototype, 'send').mockResolvedValue({} as never);
   const item = { cell: 'xn76', sk: 's', pinId: 'p' } as never;

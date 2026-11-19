@@ -70,6 +70,14 @@ export function setup(
           .map(({ userId: _u, cityCode: _cc, bloodType: _b, ...rest }) => rest);
         return { items, hasMore: all.length > limit };
       },
+      async queryByUser(userId, limit) {
+        // 本物と同じく userId・cityCode・bloodType は読まない
+        return pinStore
+          .filter((p) => p.userId === userId)
+          .sort((a, b) => (a.sk < b.sk ? 1 : -1))
+          .slice(0, limit)
+          .map(({ userId: _u, cityCode: _cc, bloodType: _b, ...rest }) => rest);
+      },
       async exists(key) {
         return findPin(key) !== undefined;
       },

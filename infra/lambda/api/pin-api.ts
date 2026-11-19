@@ -207,6 +207,13 @@ export function toSavedPinResponse(item: PinSummary) {
   return rest;
 }
 
+// 自分のピンの一覧（GET /api/me/pins）。新しい順に最大100件
+export const MAX_MY_PINS = 100;
+export async function listMyPins(userId: string, deps: Pick<PinDeps, 'pins'>) {
+  const items = await deps.pins.queryByUser(userId, MAX_MY_PINS);
+  return { pins: items.map(toPinResponse) };
+}
+
 export async function listPins(query: Record<string, string | undefined> | undefined, deps: Pick<PinDeps, 'pins'>) {
   const b = validateBounds(query);
   const cells = cellsForBounds(b);

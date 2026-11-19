@@ -9,7 +9,8 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 // DynamoDB のテーブル定義（docs/db-schema.md の「2. テーブル一覧」どおり）。
-// 全テーブルの合計を 読み・書き 各25ユニット以内にする（無料枠）。今は 書き14／読み23。
+// 全テーブルと索引（GSI）の合計を 読み・書き 各25ユニット以内にする（無料枠）。
+// 今は テーブル 書き14／読み23 ＋ 索引 byUser 書き3／読み2 ＝ 書き17／読み25（読みは余りなし。decisions.md #36）。
 const TABLES = [
   { id: 'Users', pk: 'userId', sk: undefined, write: 2, read: 3 },
   { id: 'Pins', pk: 'cell', sk: 'sk', write: 3, read: 10 },
@@ -17,6 +18,11 @@ const TABLES = [
   { id: 'Reactions', pk: 'pinId', sk: 'sk', write: 2, read: 3 },
   { id: 'Rankings', pk: 'pk', sk: 'key', write: 5, read: 4 },
 ] as const;
+
+// Pins の索引：userId ごとに新しい順（sk）で引く（GET /api/me/pins）。
+// 書きは Pins と同じ3（索引の書きが足りないと、Pins 本体への書き込みも止められるため）。
+// 入れる項目は ALL（あとから変えられないため。docs/adr/feature-api-my-pins.md）
+export const PINS_USER_INDEX = { name: 'byUser', pk: 'userId', sk: 'sk', write: 3, read: 2 } as const;
 
 export class MugStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -34,6 +40,14 @@ export class MugStack extends cdk.Stack {
         removalPolicy: cdk.RemovalPolicy.DESTROY,
       });
     }
+    tables.Pins.addGlobalSecondaryIndex({
+      indexName: PINS_USER_INDEX.name,
+      partitionKey: { name: PINS_USER_INDEX.pk, type: dynamodb.AttributeType.STRING },
+      sortKey: { name: PINS_USER_INDEX.sk, type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+      readCapacity: PINS_USER_INDEX.read,
+      writeCapacity: PINS_USER_INDEX.write,
+    });
 
     // ---- Cognito（ログイン） ----
     const userPool = new cognito.UserPool(this, 'UserPool', {
@@ -74,6 +88,7 @@ export class MugStack extends cdk.Stack {
         USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         USERS_TABLE_NAME: tables.Users.tableName,
         PINS_TABLE_NAME: tables.Pins.tableName,
+        PINS_USER_INDEX_NAME: PINS_USER_INDEX.name,
         RANKINGS_TABLE_NAME: tables.Rankings.tableName,
         COMMENTS_TABLE_NAME: tables.Comments.tableName,
         REACTIONS_TABLE_NAME: tables.Reactions.tableName,
@@ -96,6 +111,13 @@ export class MugStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ['dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem'],
         resources: [tables.Pins.tableArn],
+      }),
+    );
+    // Pins の索引 byUser：自分のピンの一覧（Query だけ。この索引に限る）
+    apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['dynamodb:Query'],
+        resources: [`${tables.Pins.tableArn}/index/${PINS_USER_INDEX.name}`],
       }),
     );
     // Comments：コメントの保存（PutItem）と一覧（Query）、ピンを消したときにそのピンのコメントを消す（DeleteItem）
