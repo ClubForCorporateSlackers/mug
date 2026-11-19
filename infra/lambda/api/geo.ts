@@ -30,6 +30,26 @@ export function jitter(lat: number, lng: number, random: Random = secureRandom):
   return { lat: round6(newLat), lng: round6(newLng) };
 }
 
+// ずらした結果が、決まった区画（cell）の中に入るまで、ずらし直す（最大 JITTER_TRIES 回）。
+// PATCH /api/pins で位置を直すときに使う。区画が変わると pinId が変わってしまうため（docs/adr/feature-api-pins-edit.md）。
+// 区画の外に出た点を境目に押し戻すと、ピンが境目の線にたまって元の位置の手がかりになるので、やり直す方式にする。
+// 結果は「半径100mの円のうち区画の中の部分」で均等になり、元の点から100m以内という約束は変わらない。
+// 入らなければ undefined（呼ぶ側で 400 にする）
+export const JITTER_TRIES = 20;
+
+export function jitterWithinCell(
+  lat: number,
+  lng: number,
+  cell: string,
+  random: Random = secureRandom,
+): { lat: number; lng: number } | undefined {
+  for (let i = 0; i < JITTER_TRIES; i++) {
+    const pos = jitter(lat, lng, random);
+    if (encodeGeohash(pos.lat, pos.lng) === cell) return pos;
+  }
+  return undefined;
+}
+
 function round6(x: number): number {
   return Math.round(x * 1e6) / 1e6;
 }

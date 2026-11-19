@@ -3,14 +3,15 @@ import { requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
-import { createPin, listPins, type PinDeps } from './pin-api';
+import { createPin, listPins } from './pin-api';
+import { type PinEditDeps, updatePin } from './pin-edit-api';
 import { getRanking } from './ranking-api';
 import { type ReactionDeps, setReaction } from './reaction-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
 // 注意：event をそのまま console.log しない（ピンのAPIで元の座標が入るため。トークンも入っている）。
 
-export type Deps = PinDeps &
+export type Deps = PinEditDeps &
   CommentDeps &
   ReactionDeps & {
     verifyIdToken: VerifyIdToken;
@@ -53,6 +54,15 @@ const routes: Record<string, Route> = {
 
 // パスに値（{pinId} など）が入るAPI。[メソッド, パスの形, 処理]。( ) の部分が params に入る
 const paramRoutes: [string, RegExp, Route][] = [
+  // 自分のピンを直す（ログイン必須。プロフィールは確かめない：自分のピンかどうかで十分なため）
+  [
+    'PATCH',
+    /^\/api\/pins\/([^/]+)$/,
+    async (event, deps, [pinId]) => {
+      const userId = await requireUserId(event, deps.verifyIdToken);
+      return json(200, await updatePin(userId, pinId, parseJsonBody(event), deps));
+    },
+  ],
   // コメント一覧（ログイン不要）
   ['GET', /^\/api\/pins\/([^/]+)\/comments$/, async (_event, deps, [pinId]) => json(200, await listComments(pinId, deps))],
   // コメントする（ログイン必須・プロフィール必須）

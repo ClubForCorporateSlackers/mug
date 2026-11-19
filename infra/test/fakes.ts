@@ -78,6 +78,15 @@ export function setup(
         const p = findPin(key);
         return p ? { ...p.reactions } : undefined;
       },
+      // 本物と同じく、自分のピンのときだけ書き換え、前の中身を返す
+      async updateOwned(key, userId, changes) {
+        const p = findPin(key);
+        if (!p) return { kind: 'not-found' };
+        if (p.userId !== userId) return { kind: 'not-owner' };
+        const old = { ...p, reactions: { ...p.reactions } };
+        Object.assign(p, Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)));
+        return { kind: 'ok', old };
+      },
     },
     // 本物のトランザクションと同じく、ピンがないか条件に合わなければ何も書かない
     reactions: {
@@ -126,6 +135,11 @@ export function setup(
           .map(([k, v]) => ({ key: k.slice(prefix.length), ...v }))
           .sort((a, b) => (a.key < b.key ? -1 : 1)) // 本物と同じく key の順
           .slice(0, limit);
+      },
+      // 本物と同じく、行がないか0件なら何もしない（行は消さない）
+      async decrement(month, kind, key) {
+        const row = rankings.get(`${month}#${kind}|${key}`);
+        if (row && row.count > 0) row.count -= 1;
       },
     },
     reverseGeocode: async (lat, lng) => {

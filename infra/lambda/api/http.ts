@@ -9,6 +9,7 @@ export type ErrorCode =
   | 'VALIDATION_ERROR' // 400
   | 'UNAUTHORIZED' // 401
   | 'PROFILE_REQUIRED' // 403
+  | 'NOT_OWNER' // 403（自分のピンではない）
   | 'NOT_FOUND' // 404
   | 'TOO_MANY_REQUESTS' // 429
   | 'INTERNAL_ERROR'; // 500
@@ -17,6 +18,7 @@ const STATUS: Record<ErrorCode, number> = {
   VALIDATION_ERROR: 400,
   UNAUTHORIZED: 401,
   PROFILE_REQUIRED: 403,
+  NOT_OWNER: 403,
   NOT_FOUND: 404,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_ERROR: 500,
