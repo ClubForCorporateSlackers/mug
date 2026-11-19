@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CenterMark } from './CenterMark';
+import { CenterPin } from './CenterPin';
 
 const meta = {
-  title: 'Components/CenterMark',
-  component: CenterMark,
-} satisfies Meta<typeof CenterMark>;
+  title: 'Components/CenterPin',
+  component: CenterPin,
+} satisfies Meta<typeof CenterPin>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
