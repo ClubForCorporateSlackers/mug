@@ -10,7 +10,7 @@ export function SplashPage({ onStart, onLogin }: Props) {
     <main className="flex min-h-svh flex-col px-4 pt-16 pb-8">
       <div className="flex flex-col items-center gap-3 text-center">
         <MugMark className="h-32 w-24" />
-        <h1 className="mt-2 text-3xl font-bold">刺されMAP</h1>
+        <h1 className="mt-2 text-3xl font-bold">むふ</h1>
         <p className="text-sm font-medium">
           「ここで刺された」をみんなで共有して、
           <br />

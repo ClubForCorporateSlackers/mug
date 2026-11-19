@@ -8,7 +8,7 @@ export function MugMark({ className, decorative = false }: Props) {
     <svg
       viewBox="80 8 690 925"
       className={cn('text-mug-body', className)}
-      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'mug' })}
+      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': 'むふ' })}
     >
       <path
         d="M300 110C270 62 240 40 205 38M524 110C554 62 584 40 618 38"
