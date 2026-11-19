@@ -15,7 +15,7 @@ export function FilterChip({ children, icon: Icon, onClick }: Props) {
     <Button
       type="button"
       variant="ghost"
-      className="h-auto gap-1 rounded-full bg-card px-3 py-2 text-sm font-bold has-[>svg]:px-3"
+      className="touch-target h-auto gap-1 rounded-full bg-card px-3 py-2 text-sm font-bold has-[>svg]:px-3"
       onClick={onClick}
     >
       {Icon ? <Icon className="size-4" aria-hidden /> : null}

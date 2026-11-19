@@ -16,7 +16,9 @@ export function ApiCheckCard({ result, onCheck }: Props) {
         <CardDescription>ここで蚊に刺された、を地図で共有する</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <Button onClick={onCheck}>APIの疎通を確認</Button>
+        <Button className="h-11" onClick={onCheck}>
+          APIの疎通を確認
+        </Button>
         <p className="text-sm text-muted-foreground">{result}</p>
       </CardContent>
     </Card>

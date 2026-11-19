@@ -20,7 +20,7 @@ export function ReactionBar({ counts, mine, onToggle, onAdd }: Props) {
         <Toggle
           key={reaction.value}
           pressed={mine.includes(reaction.value)}
-          className="h-auto rounded-full border border-transparent bg-muted px-3 py-1.5 text-sm font-bold hover:bg-muted hover:text-inherit data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+          className="touch-target h-auto rounded-full border border-transparent bg-muted px-3 py-1.5 text-sm font-bold hover:bg-muted hover:text-inherit data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
           onPressedChange={() => onToggle(reaction.value)}
         >
           {reaction.label} {counts[reaction.value] ?? 0}
@@ -29,7 +29,7 @@ export function ReactionBar({ counts, mine, onToggle, onAdd }: Props) {
       <Button
         variant="ghost"
         size="icon"
-        className="rounded-full bg-muted hover:bg-muted/80 hover:text-inherit"
+        className="size-11 rounded-full bg-muted hover:bg-muted/80 hover:text-inherit"
         aria-label="リアクションを送る"
         onClick={onAdd}
       >

@@ -21,7 +21,7 @@ export function CommentBox({ value, placeholder, busy = false, onChange, onSubmi
   return (
     <form className="flex items-center gap-2" onSubmit={submit}>
       <Input
-        className="h-11 flex-1 rounded-full border-0 bg-muted px-4 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-muted"
+        className="h-11 flex-1 rounded-full border-0 bg-muted px-4 text-base shadow-none focus-visible:ring-2 focus-visible:ring-ring md:text-base dark:bg-muted"
         aria-label="コメント"
         maxLength={100}
         placeholder={placeholder}

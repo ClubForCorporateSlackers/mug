@@ -17,7 +17,7 @@ export function BottomSheet({ label, onClose, children }: Props) {
         className="mx-auto max-h-[88svh] max-w-[430px] rounded-t-3xl border-0 bg-card data-[vaul-drawer-direction=bottom]:max-h-[88svh] data-[vaul-drawer-direction=bottom]:rounded-t-3xl data-[vaul-drawer-direction=bottom]:border-t-0"
       >
         <DrawerTitle className="sr-only">{label}</DrawerTitle>
-        <div className="flex flex-col overflow-y-auto px-4 pt-3 pb-6">{children}</div>
+        <div className="flex flex-col overflow-y-auto px-4 pt-3 pb-safe-6">{children}</div>
       </DrawerContent>
     </Drawer>
   );

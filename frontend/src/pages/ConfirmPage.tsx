@@ -46,7 +46,7 @@ export function ConfirmPage({ email, password, onBack, onSignedIn }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="確認コード" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         <AppNotice>{info}</AppNotice>
         <CodeField label="6桁のコード" value={code} disabled={busy} invalid={Boolean(error)} onChange={setCode} />
         {error ? <AppNotice tone="error">{error}</AppNotice> : null}

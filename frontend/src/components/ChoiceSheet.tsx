@@ -23,7 +23,7 @@ export function ChoiceSheet({ title, options, selected, note, onChoose, onClose 
     <BottomSheet label={title} onClose={onClose}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">{title}</h2>
-        <Button variant="ghost" size="icon" aria-label="閉じる" onClick={onClose}>
+        <Button variant="ghost" size="icon" className="size-11 rounded-full" aria-label="閉じる" onClick={onClose}>
           <X className="size-5" aria-hidden />
         </Button>
       </div>

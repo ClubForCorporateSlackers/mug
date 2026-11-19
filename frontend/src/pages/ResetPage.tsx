@@ -29,7 +29,7 @@ export function ResetPage({ onBack, onSent }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="パスワード再設定" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         <p className="text-sm">登録したメールアドレスに確認コードを送ります。</p>
         <MugField
           label="メールアドレス"
