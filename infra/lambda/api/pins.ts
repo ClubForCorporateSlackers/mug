@@ -15,13 +15,16 @@ export type PinItem = {
   stamp: string | null;
   memo: string;
   userId: string; // ランキング用。APIでは返さない
+  // 立てたときの血液型。消すときにこの血液型の件数を減らす。APIでは返さない。
+  // この項目ができる前（2026-11-19 より前）に立てたピンにはない
+  bloodType?: string;
   commentCount: number;
   reactions: Record<string, number>;
   createdAt: string;
 };
 
-// 地図に返すために読む項目（userId・cityCode は読まない）。cell はAPIの pinId を作るのに使う
-export type PinSummary = Omit<PinItem, 'userId' | 'cityCode'>;
+// 地図に返すために読む項目（userId・cityCode・bloodType は読まない）。cell はAPIの pinId を作るのに使う
+export type PinSummary = Omit<PinItem, 'userId' | 'cityCode' | 'bloodType'>;
 
 export type PinsRepo = {
   put(item: PinItem): Promise<void>;

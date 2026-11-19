@@ -59,8 +59,10 @@ export function setup(
       async queryCell(cell, limit) {
         queriedCells.push(cell);
         const all = pinStore.filter((p) => p.cell === cell).sort((a, b) => (a.sk < b.sk ? 1 : -1));
-        // 本物と同じく userId・cityCode は読まない
-        const items: PinSummary[] = all.slice(0, limit).map(({ userId: _u, cityCode: _cc, ...rest }) => rest);
+        // 本物と同じく userId・cityCode・bloodType は読まない
+        const items: PinSummary[] = all
+          .slice(0, limit)
+          .map(({ userId: _u, cityCode: _cc, bloodType: _b, ...rest }) => rest);
         return { items, hasMore: all.length > limit };
       },
       async exists(key) {

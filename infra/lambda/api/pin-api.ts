@@ -141,6 +141,7 @@ export async function createPin(userId: string, body: unknown, deps: PinDeps) {
     stamp: input.stamp,
     memo: input.memo,
     userId,
+    bloodType: user.bloodType, // 消すときに、立てたときの血液型の件数を減らすため（docs/adr/feature-api-pins-edit.md）
     commentCount: 0,
     reactions: {},
     createdAt,
