@@ -44,6 +44,8 @@ export type PinsRepo = {
   put(item: PinItem): Promise<void>;
   // 1つの cell を新しい順に最大 limit 件。hasMore は、まだ古いものが残っているか
   queryCell(cell: string, limit: number): Promise<{ items: PinSummary[]; hasMore: boolean }>;
+  // その人（userId）のピンを新しい順に最大 limit 件（索引 byUser。少し遅れて反映されることがある）
+  queryByUser(userId: string, limit: number): Promise<PinSummary[]>;
   // ピンがあるか（コメント一覧の 404 用）
   exists(key: PinKey): Promise<boolean>;
   // commentCount を1増やす。ピンがなければ false（何も書かない）
@@ -95,28 +97,52 @@ function docClient() {
   });
 }
 
-export function createDynamoPinsRepo(tableName: string): PinsRepo {
+// 読む項目の指定（ProjectionExpression と、予約語よけの名前）
+function summaryProjection() {
+  return {
+    ProjectionExpression: SUMMARY_FIELDS.map((f) => `#${f}`).join(', '),
+    names: Object.fromEntries(SUMMARY_FIELDS.map((f) => [`#${f}`, f])),
+  };
+}
+
+// userIndexName：userId で引く索引（GSI）の名前（docs/db-schema.md。CDK が環境変数で渡す）
+export function createDynamoPinsRepo(tableName: string, userIndexName = 'byUser'): PinsRepo {
   const db = docClient();
   return {
     async put(item) {
       await db.send(new PutCommand({ TableName: tableName, Item: item }));
     },
     async queryCell(cell, limit) {
+      const { ProjectionExpression, names } = summaryProjection();
       const res = await db.send(
         new QueryCommand({
           TableName: tableName,
           KeyConditionExpression: '#cell = :cell',
-          ExpressionAttributeNames: {
-            '#cell': 'cell',
-            ...Object.fromEntries(SUMMARY_FIELDS.map((f) => [`#${f}`, f])),
-          },
+          ExpressionAttributeNames: { '#cell': 'cell', ...names },
           ExpressionAttributeValues: { ':cell': cell },
-          ProjectionExpression: SUMMARY_FIELDS.map((f) => `#${f}`).join(', '),
+          ProjectionExpression,
           ScanIndexForward: false, // 新しい順
           Limit: limit,
         }),
       );
       return { items: (res.Items ?? []) as PinSummary[], hasMore: res.LastEvaluatedKey !== undefined };
+    },
+    async queryByUser(userId, limit) {
+      const { ProjectionExpression, names } = summaryProjection();
+      const res = await db.send(
+        new QueryCommand({
+          TableName: tableName,
+          IndexName: userIndexName,
+          KeyConditionExpression: '#uid = :uid',
+          // userId は条件に使うだけで、読む項目（ProjectionExpression）には入れない
+          ExpressionAttributeNames: { '#uid': 'userId', ...names },
+          ExpressionAttributeValues: { ':uid': userId },
+          ProjectionExpression,
+          ScanIndexForward: false, // 新しい順
+          Limit: limit,
+        }),
+      );
+      return (res.Items ?? []) as PinSummary[];
     },
     async exists(key) {
       const res = await db.send(

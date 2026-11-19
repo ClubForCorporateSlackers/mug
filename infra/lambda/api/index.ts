@@ -23,7 +23,7 @@ export const handler = async (event: LambdaFunctionURLEvent): Promise<LambdaFunc
   app ??= createHandler({
     verifyIdToken: createCognitoVerifier(requireEnv('USER_POOL_ID'), requireEnv('USER_POOL_CLIENT_ID')),
     users: createDynamoUsersRepo(requireEnv('USERS_TABLE_NAME')),
-    pins: createDynamoPinsRepo(requireEnv('PINS_TABLE_NAME')),
+    pins: createDynamoPinsRepo(requireEnv('PINS_TABLE_NAME'), requireEnv('PINS_USER_INDEX_NAME')),
     rankings: createDynamoRankingsRepo(requireEnv('RANKINGS_TABLE_NAME')),
     comments: createDynamoCommentsRepo(requireEnv('COMMENTS_TABLE_NAME')),
     reactions: createDynamoReactionsRepo(requireEnv('REACTIONS_TABLE_NAME'), requireEnv('PINS_TABLE_NAME')),

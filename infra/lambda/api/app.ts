@@ -3,7 +3,7 @@ import { requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
-import { createPin, listPins } from './pin-api';
+import { createPin, listMyPins, listPins } from './pin-api';
 import { deletePin, type PinEditDeps, updatePin } from './pin-edit-api';
 import { getRanking } from './ranking-api';
 import { type ReactionDeps, setReaction } from './reaction-api';
@@ -37,6 +37,12 @@ const routes: Record<string, Route> = {
     const { nickname, bloodType } = validateProfile(parseJsonBody(event));
     const user = await deps.users.saveProfile(userId, nickname, bloodType, nowJst());
     return json(200, toMeResponse(user));
+  },
+
+  // 自分のピンの一覧（ログイン必須。プロフィールは確かめない：ピンがなければ空の一覧になるだけのため）
+  'GET /api/me/pins': async (event, deps) => {
+    const userId = await requireUserId(event, deps.verifyIdToken);
+    return json(200, await listMyPins(userId, deps));
   },
 
   // ピンを立てる（ログイン必須・プロフィール必須）。順番：ログイン 401 → 入力 400 → プロフィール 403
