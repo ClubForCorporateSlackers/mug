@@ -2,6 +2,20 @@
 
 発表のスライドに貼るための構成図です。2026-11-19 時点の `main` の構成（案F）を描いています。
 
+### draw.io 版（AWS の公式アイコン付き）
+
+| ファイル | 中身 |
+|---|---|
+| [mug-architecture.drawio](./mug-architecture.drawio) | 元の図。ページ「1_利用の流れ」と「2_開発・デプロイの流れ」の2ページ |
+| [mug-architecture-drawio-1-usage.png](./mug-architecture-drawio-1-usage.png) | 1枚目の PNG（3840×2160） |
+| [mug-architecture-drawio-2-deploy.png](./mug-architecture-drawio-2-deploy.png) | 2枚目の PNG（3840×2160） |
+
+- AWS のサービスは、draw.io の AWS アイコン（`mxgraph.aws4`）を使っています。Cloudflare・Cloudflare Workers・GitHub・GitHub Actions のロゴは Simple Icons のものです（[hackathon-architecture.drawio](../hackathon-architecture.drawio) と同じやり方）
+- 国土地理院 API と OpenFreeMap には公式のアイコンがないので、灰色の箱にしています
+- 直すときは、draw.io（アプリか https://app.diagrams.net/ ）で開いて直し、「ファイル → エクスポート → PNG」で、ズーム 200%・「ページ全体」のチェックを入れて書き出してください
+
+### SVG 版（最初に作ったもの）
+
 | ファイル | 中身 |
 |---|---|
 | [mug-architecture-1-usage.svg](./mug-architecture-1-usage.svg)・[.png](./mug-architecture-1-usage.png) | 1枚目：利用するときの流れ（①〜⑩、実線） |

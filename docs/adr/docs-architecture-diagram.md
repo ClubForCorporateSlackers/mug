@@ -69,3 +69,40 @@
 ### 影響・あとで見直すこと
 
 - 構成が変わったら、SVG を直して PNG を作り直す（README.md に手順がある）
+
+---
+
+## 判断：draw.io 版のアイコンの選び方と、PNG の作り方
+
+- 状態：提案（人の確認待ち）
+
+### 状況（何に迷ったか）
+
+「hackathon-architecture.drawio のように公式のアイコンを使った draw.io の図を作る」と指示があった。AWS 以外のサービスのアイコンと、PNG の作り方は決まっていなかった。この PC には draw.io のアプリが入っていない。
+
+### 決めたこと
+
+- `docs/architecture-diagram/mug-architecture.drawio` を新しく作った。1つのファイルに2ページ（利用の流れ／開発・デプロイの流れ）を入れた
+- AWS のサービスは draw.io の AWS アイコン（`mxgraph.aws4`）を使った。名前は draw.io のソース（Sidebar-AWS4.js）で確かめた（Budgets は `budgets_2`、S3 は `s3`）
+- 関数URL には AWS のアイコンがないので、Lambda と同じオレンジの枠の箱にした。DynamoDB のテーブルと索引は、テーブル（`table`）と GSI（`global_secondary_index`）のアイコンにした
+- Cloudflare・Workers Builds は Cloudflare のロゴ、Worker は Cloudflare Workers のロゴ、GitHub・GitHub Actions はそれぞれのロゴにした（Simple Icons。hackathon-architecture.drawio と同じやり方。Workers Builds 専用のロゴはない）
+- 国土地理院 API と OpenFreeMap は、公式のアイコンがないので灰色の箱にした
+- 利用者のブラウザは AWS の `client`、開発者は `user` のアイコンにした
+- PNG は、draw.io のビューア（viewer.diagrams.net の viewer-static.min.js）を読み込んだ HTML を Edge で開いて撮った（3840×2160）。図のデータは手元の HTML に入れただけで、外には送っていない。この方法のスクリプトはリポジトリに入れていない
+- 最初に作った SVG 版は、消さずに残した
+
+### 理由
+
+- 既存の構成図と見た目をそろえるため
+- draw.io のアプリがなくても、draw.io と同じ描き方で PNG を作れるため
+- 直すときは draw.io で開いて書き出せばよいので、撮るためのスクリプトは要らないと判断した
+
+### ほかの案
+
+- draw.io のアプリを入れて書き出す：PC にソフトを入れることになるので、確認なしにはしなかった
+- 国土地理院・OpenFreeMap に、似たアイコン（地球など）を付ける：公式のものではないので付けなかった
+
+### 影響・あとで見直すこと
+
+- ビューアで撮った PNG と、draw.io のアプリで書き出した PNG では、文字の位置がわずかに違うことがある
+- SVG 版を残すか消すかは、人が決める
