@@ -78,6 +78,11 @@ export function setup(
           .slice(0, limit)
           .map(({ userId: _u, cityCode: _cc, bloodType: _b, ...rest }) => rest);
       },
+      async sumReactionsByUser(userId, type) {
+        return pinStore
+          .filter((p) => p.userId === userId)
+          .reduce((sum, p) => sum + Math.max(0, p.reactions[type] ?? 0), 0);
+      },
       async exists(key) {
         return findPin(key) !== undefined;
       },
@@ -178,6 +183,9 @@ export function setup(
       async decrement(month, kind, key) {
         const row = rankings.get(`${month}#${kind}|${key}`);
         if (row && row.count > 0) row.count -= 1;
+      },
+      async getCount(month, kind, key) {
+        return Math.max(0, rankings.get(`${month}#${kind}|${key}`)?.count ?? 0);
       },
     },
     reverseGeocode: async (lat, lng) => {

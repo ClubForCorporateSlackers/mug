@@ -2,7 +2,7 @@ import type { LambdaFunctionURLEvent } from 'aws-lambda';
 import { optionalUserId, requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
 import { type CommentDeps, createComment, listComments } from './comment-api';
-import { toMeResponse, validateProfile } from './me';
+import { loadMeStats, toMeResponse, validateProfile } from './me';
 import { createPin, listMyPins, listPins } from './pin-api';
 import { deletePin, type PinEditDeps, updatePin } from './pin-edit-api';
 import { getRanking } from './ranking-api';
@@ -29,7 +29,9 @@ const routes: Record<string, Route> = {
     const userId = await requireUserId(event, deps.verifyIdToken);
     const user = await deps.users.get(userId);
     if (!user) throw new ApiError('NOT_FOUND', 'プロフィールがまだ登録されていません');
-    return json(200, toMeResponse(user));
+    // 未登録（404）のときは数を読まない。数を読めなければ、その2つを付けずに返す（docs/decisions.md #38）
+    const stats = await loadMeStats(userId, deps);
+    return json(200, { ...toMeResponse(user), ...stats });
   },
 
   'PUT /api/me': async (event, deps) => {

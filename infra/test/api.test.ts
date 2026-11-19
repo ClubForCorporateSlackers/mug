@@ -41,12 +41,15 @@ describe('GET /api/me', () => {
     expect(res).toMatchObject({ status: 404, body: { error: 'NOT_FOUND' } });
   });
 
-  test('登録済みならプロフィールを返す（pinCount がなければ 0）', async () => {
+  test('登録済みならプロフィールを返す（pinCount がなければ 0。ピンがなければ monthCount・odaijiReceived も 0）', async () => {
     const { handler } = setup([
       { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x' },
     ]);
     const res = await call(handler, event('GET', '/api/me', { token: GOOD_TOKEN }));
-    expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'こまつ', bloodType: 'A', pinCount: 0 } });
+    expect(res).toEqual({
+      status: 200,
+      body: { userId: SUB, nickname: 'こまつ', bloodType: 'A', pinCount: 0, monthCount: 0, odaijiReceived: 0 },
+    });
   });
 });
 

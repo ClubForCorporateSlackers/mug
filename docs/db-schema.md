@@ -139,6 +139,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
 | スタンプの数を見る | なし | Pins 1件（強い整合性）＋Reactions 3件（自分が押したか。ログインしているときだけ）（decisions.md #37） |
 | ランキングを見る | なし | Rankings 1回Query |
 | 自分のピンの一覧 | なし | Pins の索引 `byUser` を1回Query（最大100件） |
+| 自分のプロフィール（GET /api/me） | なし | Users 1件。登録済みなら、さらに Rankings 1行（今月の「人」の行。pk と key を指定した Query）＋Pins の索引 `byUser` を自分のピン全部Query（もらった「お大事に」の合計。ピンの大きさの合計 4KB ごとに0.5ユニット）（decisions.md #38） |
 | 自分のピンを直す（スタンプ・メモ） | Pins 1件（条件付き。前の値を受け取る） | なし |
 | 自分のピンを直す（位置。市町村が変わったとき） | Pins 1件＋Rankings 2件 | なし |
 | 自分のピンを消す | Pins 1件（条件付き。前の値を受け取る）→ Rankings 3件＋Users 1件（`pinCount` を1減らす）→ Comments・Reactions をそのピンの件数だけ1件ずつ | Comments・Reactions を1回以上Query（キーだけ）。血液型がない古いピンは Users 1件 |
