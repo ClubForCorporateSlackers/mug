@@ -33,7 +33,7 @@ export function MugField({ label, hint, id, type, ...props }: Props) {
           <Button
             type="button"
             variant="ghost"
-            className="absolute top-1/2 right-1 size-10 -translate-y-1/2 rounded-xl p-0 text-muted-foreground"
+            className="absolute top-1/2 right-0.5 size-11 -translate-y-1/2 rounded-xl p-0 text-muted-foreground"
             aria-label={shown ? 'パスワードを隠す' : 'パスワードを表示'}
             aria-pressed={shown}
             aria-controls={fieldId}
