@@ -28,6 +28,8 @@ type Props = {
   postError?: string;
   // 増えたらピンを読み直す（自分がピンを立てた直後など）
   pinsVersion: number;
+  // この画面を開いているあいだに立てたピン（投稿の直後の読み直しに、まだ入っていないことがある）
+  postedPins: Pin[];
   onPost: () => void;
   onOpenPin: (pin: Pin) => void;
   onMe: () => void;
@@ -63,6 +65,7 @@ export function MapPage({
   posting,
   postError,
   pinsVersion,
+  postedPins,
   onPost,
   onOpenPin,
   onMe,
@@ -80,6 +83,10 @@ export function MapPage({
   const [loaded, setLoaded] = useState(false);
   const [notice, setNotice] = useState('');
   const [pins, setPins] = useState<Pin[]>([]);
+  const postedRef = useRef(postedPins);
+  useEffect(() => {
+    postedRef.current = postedPins;
+  }, [postedPins]);
   const [danger, setDanger] = useState<DangerLevel | null>(null);
 
   useEffect(() => {
@@ -161,7 +168,18 @@ export function MapPage({
       try {
         const data = await api<PinResponse>('GET', `/api/pins?${query}`);
         if (id !== request) return;
-        show(data.pins);
+        // GET /api/pins は、書いた直後の内容をまだ返さないことがある（DynamoDB の結果整合性の読み込み）。
+        // 立てたばかりのピンが返ってこなくても描けるように、自分が立てたピンのうち表示範囲にあるものを足す
+        const ids = new Set(data.pins.map((pin) => pin.pinId));
+        const posted = postedRef.current.filter(
+          (pin) =>
+            !ids.has(pin.pinId) &&
+            pin.lat >= bounds.getSouth() &&
+            pin.lat <= bounds.getNorth() &&
+            pin.lng >= bounds.getWest() &&
+            pin.lng <= bounds.getEast(),
+        );
+        show([...data.pins, ...posted]);
         setNotice(data.truncated ? '表示しきれません。拡大してください' : '');
       } catch (err) {
         if (id !== request) return;
