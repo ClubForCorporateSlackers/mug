@@ -14,3 +14,6 @@ export const Default: Story = {};
 export const WithHint: Story = {
   args: { label: 'パスワード', hint: '8文字以上。大文字・小文字・数字・記号', type: 'password' },
 };
+export const Filled: Story = { args: { defaultValue: 'kayui@example.com' } };
+export const Disabled: Story = { args: { defaultValue: 'kayui@example.com', disabled: true } };
+export const Error: Story = { args: { defaultValue: 'kayui@', 'aria-invalid': true } };

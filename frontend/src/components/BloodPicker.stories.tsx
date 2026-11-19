@@ -13,3 +13,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Selected: Story = {};
 export const Unknown: Story = { args: { value: 'UNKNOWN' } };
+export const O: Story = { args: { value: 'O' } };

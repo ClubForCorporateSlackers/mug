@@ -1,5 +1,6 @@
 import { Hand, Heart, ThumbsUp, X } from 'lucide-react';
-import { cn } from 'cn';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { REACTIONS } from '@/lib/labels';
 import type { ReactionType } from '@/lib/types';
 import { BottomSheet } from './BottomSheet';
@@ -13,39 +14,44 @@ type Props = {
 };
 
 export function ReactionPicker({ mine, onPick, onClose }: Props) {
+  // ToggleGroup は「押したあとの全部の値」を知らせるので、前と変わった1つを探して onPick に渡す
+  function change(next: string[]) {
+    const changed = REACTIONS.find((reaction) => next.includes(reaction.value) !== mine.includes(reaction.value));
+    if (changed) onPick(changed.value);
+  }
+
   return (
     <BottomSheet label="リアクションを送る" onClose={onClose}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">リアクションを送る</h2>
-        <button type="button" className="grid size-9 place-items-center" aria-label="閉じる" onClick={onClose}>
+        <Button variant="ghost" size="icon" aria-label="閉じる" onClick={onClose}>
           <X className="size-5" aria-hidden />
-        </button>
+        </Button>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <ToggleGroup
+        type="multiple"
+        spacing={3}
+        className="mt-4 grid w-full grid-cols-3"
+        aria-label="リアクション"
+        value={mine}
+        onValueChange={change}
+      >
         {REACTIONS.map((reaction) => {
           const Icon = ICONS[reaction.value];
-          const on = mine.includes(reaction.value);
           return (
-            <button
+            <ToggleGroupItem
               key={reaction.value}
-              type="button"
-              aria-pressed={on}
-              className="flex flex-col items-center gap-1 text-xs font-bold"
-              onClick={() => onPick(reaction.value)}
+              value={reaction.value}
+              className="group h-auto flex-col gap-1 p-0 text-xs font-bold hover:bg-transparent hover:text-inherit data-[state=on]:bg-transparent data-[state=on]:text-inherit"
             >
-              <span
-                className={cn(
-                  'grid size-14 place-items-center rounded-full bg-secondary',
-                  on && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
-                )}
-              >
+              <span className="grid size-14 place-items-center rounded-full bg-secondary group-data-[state=on]:ring-2 group-data-[state=on]:ring-primary group-data-[state=on]:ring-offset-2 group-data-[state=on]:ring-offset-card">
                 <Icon className="size-6" aria-hidden />
               </span>
               {reaction.label}
-            </button>
+            </ToggleGroupItem>
           );
         })}
-      </div>
+      </ToggleGroup>
       <p className="mt-4 text-center text-xs text-muted-foreground">リアクションにはニックネームが表示されます。</p>
     </BottomSheet>
   );

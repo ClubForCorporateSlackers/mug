@@ -13,3 +13,4 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 export const NothingYet: Story = { args: { mine: [] } };
+export const AllPicked: Story = { args: { mine: ['odaiji', 'kaite', 'wakaru'] } };

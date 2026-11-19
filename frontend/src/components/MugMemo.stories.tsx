@@ -12,3 +12,5 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 export const Empty: Story = { args: { defaultValue: '', placeholder: '番地は書かなくて大丈夫です' } };
+export const Disabled: Story = { args: { disabled: true } };
+export const Error: Story = { args: { 'aria-invalid': true } };

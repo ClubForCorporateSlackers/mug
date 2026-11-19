@@ -13,3 +13,7 @@ type Story = StoryObj<typeof meta>;
 
 export const WithCounts: Story = {};
 export const Empty: Story = { args: { counts: {}, mine: [] } };
+export const OnlyOthers: Story = { args: { mine: [] } };
+export const AllMine: Story = {
+  args: { counts: { odaiji: 1, kaite: 2, wakaru: 3 }, mine: ['odaiji', 'kaite', 'wakaru'] },
+};
