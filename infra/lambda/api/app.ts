@@ -1,12 +1,12 @@
 import type { LambdaFunctionURLEvent } from 'aws-lambda';
-import { requireUserId, type VerifyIdToken } from './auth';
+import { optionalUserId, requireUserId, type VerifyIdToken } from './auth';
 import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } from './http';
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
 import { createPin, listMyPins, listPins } from './pin-api';
 import { deletePin, type PinEditDeps, updatePin } from './pin-edit-api';
 import { getRanking } from './ranking-api';
-import { type ReactionDeps, setReaction } from './reaction-api';
+import { getReactions, type ReactionDeps, setReaction } from './reaction-api';
 
 // APIの振り分け。外の世界（Cognito・DynamoDB）は deps で受け取るので、テストでは偽物に差し替えられる。
 // 注意：event をそのまま console.log しない（ピンのAPIで元の座標が入るため。トークンも入っている）。
@@ -86,6 +86,15 @@ const paramRoutes: [string, RegExp, Route][] = [
     async (event, deps, [pinId]) => {
       const userId = await requireUserId(event, deps.verifyIdToken);
       return json(201, await createComment(userId, pinId, parseJsonBody(event), deps));
+    },
+  ],
+  // スタンプの数と自分が押したもの（ログイン不要。X-Id-Token があれば myReactions に自分の分を入れる）
+  [
+    'GET',
+    /^\/api\/pins\/([^/]+)\/reactions$/,
+    async (event, deps, [pinId]) => {
+      const userId = await optionalUserId(event, deps.verifyIdToken);
+      return json(200, await getReactions(userId, pinId, deps));
     },
   ],
   // スタンプを押す・取り消す（ログイン必須・プロフィール必須）。本文はなし

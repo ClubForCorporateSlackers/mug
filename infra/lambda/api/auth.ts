@@ -30,3 +30,10 @@ export async function requireUserId(event: LambdaFunctionURLEvent, verify: Verif
     throw new ApiError('UNAUTHORIZED', 'ログインの有効期限が切れたか、トークンが正しくありません');
   }
 }
+
+// ログインしなくても使えるAPI用。X-Id-Token がない → undefined（ログインしていない人として扱う）。
+// あるのに正しくない・期限切れ → 401（黙って「ログインしていない」にすると、違う表示になるため。docs/decisions.md #37）
+export async function optionalUserId(event: LambdaFunctionURLEvent, verify: VerifyIdToken): Promise<string | undefined> {
+  if (!event.headers?.['x-id-token']) return undefined;
+  return requireUserId(event, verify);
+}

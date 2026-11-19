@@ -136,6 +136,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
 | コメントする | Pins 1件（件数。ピンがなければ404）→ Comments 1件 | Users 1件 |
 | コメント一覧 | なし | Pins 1件（あるかの確認）＋Comments 1回Query（最大100件） |
 | スタンプを押す・取り消す | Reactions 1件＋Pins 1件（件数）を**トランザクション**で（各2ユニット） | Users 1件＋Pins 1件（強い整合性）＋Reactions 2件（自分が押したか） |
+| スタンプの数を見る | なし | Pins 1件（強い整合性）＋Reactions 3件（自分が押したか。ログインしているときだけ）（decisions.md #37） |
 | ランキングを見る | なし | Rankings 1回Query |
 | 自分のピンの一覧 | なし | Pins の索引 `byUser` を1回Query（最大100件） |
 | 自分のピンを直す（スタンプ・メモ） | Pins 1件（条件付き。前の値を受け取る） | なし |
