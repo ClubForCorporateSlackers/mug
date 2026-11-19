@@ -154,6 +154,7 @@ describe('POST /api/pins', () => {
           },
           list: async () => [],
           decrement: async () => {},
+          getCount: async () => 0,
         },
       },
     });

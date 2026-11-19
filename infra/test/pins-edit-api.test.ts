@@ -148,7 +148,7 @@ describe('PATCH /api/pins/{pinId}', () => {
     const { handler, pinStore } = setup({
       pins: [pin],
       city: { city: '東京都中央区', cityCode: '13102' },
-      overrides: { rankings: { increment: fail, decrement: fail, list: async () => [] } },
+      overrides: { rankings: { increment: fail, decrement: fail, list: async () => [], getCount: async () => 0 } },
     });
     const res = await call(handler, patch(pin, ORIGINAL));
     spy.mockRestore();

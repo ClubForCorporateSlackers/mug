@@ -120,3 +120,49 @@ test('ランキングの取得は pk=月#種類 の Query 1回（Limit 付き）
     Limit: 1000,
   });
 });
+
+test('お大事にの合計は索引 byUser への Query。reactions の1種類だけを読み、続きのページも最後まで読む', async () => {
+  const send = jest
+    .spyOn(DynamoDBDocumentClient.prototype, 'send')
+    .mockResolvedValueOnce({
+      Items: [{ reactions: { odaiji: 2 } }, { reactions: {} }, {}],
+      LastEvaluatedKey: { userId: 'user-1', sk: 's1', cell: 'xn76' },
+    } as never)
+    .mockResolvedValueOnce({ Items: [{ reactions: { odaiji: 3 } }, { reactions: { odaiji: -1 } }] } as never);
+  const total = await createDynamoPinsRepo('PinsTable', 'byUser').sumReactionsByUser('user-1', 'odaiji');
+
+  expect(total).toBe(5); // マイナスの値は数えない
+  expect(send).toHaveBeenCalledTimes(2);
+  const [first, second] = send.mock.calls.map((c) => c[0] as QueryCommand);
+  expect(first).toBeInstanceOf(QueryCommand);
+  expect(first.input).toMatchObject({
+    TableName: 'PinsTable',
+    IndexName: 'byUser',
+    KeyConditionExpression: '#uid = :uid',
+    ExpressionAttributeNames: { '#uid': 'userId', '#r': 'reactions', '#t': 'odaiji' },
+    ExpressionAttributeValues: { ':uid': 'user-1' },
+    ProjectionExpression: '#r.#t',
+  });
+  expect(first.input.ExclusiveStartKey).toBeUndefined();
+  expect(second.input.ExclusiveStartKey).toEqual({ userId: 'user-1', sk: 's1', cell: 'xn76' });
+});
+
+test('ランキングの1行の件数は、pk と key の両方を指定した Query（Limit 1）。行がなければ 0', async () => {
+  const send = jest
+    .spyOn(DynamoDBDocumentClient.prototype, 'send')
+    .mockResolvedValueOnce({ Items: [{ count: 4 }] } as never)
+    .mockResolvedValueOnce({ Items: [] } as never);
+  const repo = createDynamoRankingsRepo('RankingsTable');
+
+  expect(await repo.getCount('2026-11', 'user', 'user-1')).toBe(4);
+  expect(await repo.getCount('2026-11', 'user', 'nobody')).toBe(0);
+  const command = send.mock.calls[0][0] as QueryCommand;
+  expect(command).toBeInstanceOf(QueryCommand); // GetItem の権限はないので Query
+  expect(command.input).toMatchObject({
+    TableName: 'RankingsTable',
+    KeyConditionExpression: '#pk = :pk AND #key = :key',
+    ExpressionAttributeValues: { ':pk': '2026-11#user', ':key': 'user-1' },
+    ProjectionExpression: '#count',
+    Limit: 1,
+  });
+});

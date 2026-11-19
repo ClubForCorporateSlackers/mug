@@ -113,7 +113,7 @@ export class MugStack extends cdk.Stack {
         resources: [tables.Pins.tableArn],
       }),
     );
-    // Pins の索引 byUser：自分のピンの一覧（Query だけ。この索引に限る）
+    // Pins の索引 byUser：自分のピンの一覧と、GET /api/me のもらった「お大事に」の合計（Query だけ。この索引に限る）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['dynamodb:Query'],
@@ -135,7 +135,8 @@ export class MugStack extends cdk.Stack {
         resources: [tables.Reactions.tableArn],
       }),
     );
-    // Rankings：件数を増やす（UpdateItem の ADD）と、ランキングの取得（Query）
+    // Rankings：件数を増やす（UpdateItem の ADD）と、ランキングの取得（Query）、
+    // GET /api/me の今月の自分の件数（pk と key を指定した Query。GetItem は許可していない）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['dynamodb:UpdateItem', 'dynamodb:Query'],

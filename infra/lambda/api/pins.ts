@@ -46,6 +46,8 @@ export type PinsRepo = {
   queryCell(cell: string, limit: number): Promise<{ items: PinSummary[]; hasMore: boolean }>;
   // その人（userId）のピンを新しい順に最大 limit 件（索引 byUser。少し遅れて反映されることがある）
   queryByUser(userId: string, limit: number): Promise<PinSummary[]>;
+  // その人（userId）の全部のピンの reactions.<type> の合計（索引 byUser を最後まで読む。少し遅れて反映されることがある）
+  sumReactionsByUser(userId: string, type: string): Promise<number>;
   // ピンがあるか（コメント一覧の 404 用）
   exists(key: PinKey): Promise<boolean>;
   // commentCount を1増やす。ピンがなければ false（何も書かない）
@@ -68,6 +70,8 @@ export type RankingsRepo = {
   // その月の件数を1減らす。行がないときと、0件のときは何もしない（マイナスにしない）。
   // 0件になった行は消さずに残す（ランキングの表示で 0件は出さないため）
   decrement(month: string, kind: RankingKind, key: string): Promise<void>;
+  // その月・種類・key の件数（行がなければ 0）。キーをすべて指定した Query で1行だけ読む
+  getCount(month: string, kind: RankingKind, key: string): Promise<number>;
 };
 
 // 読む項目。予約語とぶつからないよう、すべて #名前 で指定する
@@ -143,6 +147,31 @@ export function createDynamoPinsRepo(tableName: string, userIndexName = 'byUser'
         }),
       );
       return (res.Items ?? []) as PinSummary[];
+    },
+    async sumReactionsByUser(userId, type) {
+      // 読み込みのユニットは、読む項目を絞っても「ピン全体の大きさ」で決まる（4KB ごとに 0.5）。
+      // ピンが増えると重くなるので、そのときは書くときに数える方法に切り替える（docs/decisions.md #38）
+      let total = 0;
+      let startKey: Record<string, unknown> | undefined;
+      do {
+        const res = await db.send(
+          new QueryCommand({
+            TableName: tableName,
+            IndexName: userIndexName,
+            KeyConditionExpression: '#uid = :uid',
+            ExpressionAttributeNames: { '#uid': 'userId', '#r': 'reactions', '#t': type },
+            ExpressionAttributeValues: { ':uid': userId },
+            ProjectionExpression: '#r.#t',
+            ExclusiveStartKey: startKey,
+          }),
+        );
+        for (const item of res.Items ?? []) {
+          const n = (item.reactions as Record<string, unknown> | undefined)?.[type];
+          if (typeof n === 'number' && n > 0) total += n;
+        }
+        startKey = res.LastEvaluatedKey;
+      } while (startKey);
+      return total;
     },
     async exists(key) {
       const res = await db.send(
@@ -267,6 +296,21 @@ export function createDynamoRankingsRepo(tableName: string): RankingsRepo {
       } catch (e) {
         if (!isConditionFailed(e)) throw e;
       }
+    },
+    async getCount(month, kind, key) {
+      // GetItem の権限はないので、パーティションキーとソートキーの両方を指定した Query で1行だけ読む（0.5ユニット）
+      const res = await db.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: '#pk = :pk AND #key = :key',
+          ExpressionAttributeNames: { '#pk': 'pk', '#key': 'key', '#count': 'count' },
+          ExpressionAttributeValues: { ':pk': `${month}#${kind}`, ':key': key },
+          ProjectionExpression: '#count',
+          Limit: 1,
+        }),
+      );
+      const n = res.Items?.[0]?.count;
+      return typeof n === 'number' && n > 0 ? n : 0;
     },
   };
 }

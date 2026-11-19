@@ -1,4 +1,5 @@
-import { ApiError } from './http';
+import { ApiError, nowJst } from './http';
+import type { PinsRepo, RankingsRepo } from './pins';
 import type { UserItem } from './users';
 
 // GET/PUT /api/me の入力チェックと返す形（docs/api-spec.md の 1・2）。
@@ -41,4 +42,28 @@ export function toMeResponse(user: UserItem) {
     bloodType: user.bloodType,
     pinCount: user.pinCount ?? 0,
   };
+}
+
+export type MeStatsDeps = { pins: PinsRepo; rankings: RankingsRepo; now?: () => Date };
+
+// GET /api/me だけで足す数（PR #16 の api-spec.md「8.」の「今ある API に足す項目」。docs/decisions.md #38）。
+// - monthCount：今月（日本時間）に立てて、まだ残っているピンの数。Rankings の今月の「人」の行から読む（ランキングと同じ数）
+// - odaijiReceived：今残っている自分のピンがもらった「お大事に」の合計（自分で押した分も含む）。索引 byUser で数える
+// 読み込みに失敗したら undefined（呼ぶ側は項目を付けずに 200 にする。画面のログインの確認を止めないため）
+export async function loadMeStats(
+  userId: string,
+  deps: MeStatsDeps,
+): Promise<{ monthCount: number; odaijiReceived: number } | undefined> {
+  const month = nowJst(deps.now?.() ?? new Date()).slice(0, 7); // 日本時間の YYYY-MM（ピンを立てるときと同じ決め方）
+  try {
+    const [monthCount, odaijiReceived] = await Promise.all([
+      deps.rankings.getCount(month, 'user', userId),
+      deps.pins.sumReactionsByUser(userId, 'odaiji'),
+    ]);
+    return { monthCount, odaijiReceived };
+  } catch (e) {
+    // userId やトークンは出さない。エラーの種類だけ残す
+    console.error('GET /api/me stats failed:', e instanceof Error ? `${e.name}: ${e.message}` : 'unknown');
+    return undefined;
+  }
 }
