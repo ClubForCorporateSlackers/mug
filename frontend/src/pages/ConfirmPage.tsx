@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { AppNotice } from '@/components/AppNotice';
+import { CodeField } from '@/components/CodeField';
 import { MugButton } from '@/components/MugButton';
-import { MugField } from '@/components/MugField';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { authMessage, confirmSignUp, resendCode, signIn } from '@/lib/auth';
 import type { Session } from '@/lib/auth';
@@ -48,15 +48,7 @@ export function ConfirmPage({ email, password, onBack, onSignedIn }: Props) {
       <ScreenHeader title="確認コード" onBack={onBack} />
       <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
         <AppNotice>{info}</AppNotice>
-        <MugField
-          label="6桁のコード"
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          required
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-        />
+        <CodeField label="6桁のコード" value={code} disabled={busy} invalid={Boolean(error)} onChange={setCode} />
         {error ? <AppNotice tone="error">{error}</AppNotice> : null}
         <div className="mt-auto flex flex-col gap-2">
           <MugButton type="submit" disabled={busy}>

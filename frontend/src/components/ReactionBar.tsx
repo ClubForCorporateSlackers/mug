@@ -1,5 +1,6 @@
 import { CirclePlus } from 'lucide-react';
-import { cn } from 'cn';
+import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
 import { REACTIONS } from '@/lib/labels';
 import type { ReactionType } from '@/lib/types';
 
@@ -15,31 +16,25 @@ export function ReactionBar({ counts, mine, onToggle, onAdd }: Props) {
   const shown = REACTIONS.filter((reaction) => (counts[reaction.value] ?? 0) > 0 || mine.includes(reaction.value));
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="リアクション">
-      {shown.map((reaction) => {
-        const on = mine.includes(reaction.value);
-        return (
-          <button
-            key={reaction.value}
-            type="button"
-            aria-pressed={on}
-            className={cn(
-              'rounded-full border px-3 py-1.5 text-sm font-bold',
-              on ? 'border-primary bg-primary/10 text-primary' : 'border-transparent bg-muted',
-            )}
-            onClick={() => onToggle(reaction.value)}
-          >
-            {reaction.label} {counts[reaction.value] ?? 0}
-          </button>
-        );
-      })}
-      <button
-        type="button"
-        className="grid size-9 place-items-center rounded-full bg-muted"
+      {shown.map((reaction) => (
+        <Toggle
+          key={reaction.value}
+          pressed={mine.includes(reaction.value)}
+          className="h-auto rounded-full border border-transparent bg-muted px-3 py-1.5 text-sm font-bold hover:bg-muted hover:text-inherit data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+          onPressedChange={() => onToggle(reaction.value)}
+        >
+          {reaction.label} {counts[reaction.value] ?? 0}
+        </Toggle>
+      ))}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-full bg-muted hover:bg-muted/80 hover:text-inherit"
         aria-label="リアクションを送る"
         onClick={onAdd}
       >
         <CirclePlus className="size-5" aria-hidden />
-      </button>
+      </Button>
     </div>
   );
 }

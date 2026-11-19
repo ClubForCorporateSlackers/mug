@@ -33,3 +33,4 @@ export const Prefecture: Story = {
     note: 'ランキングは市区町村ごとに集計しています。',
   },
 };
+export const NothingSelected: Story = { args: { selected: '' } };

@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type Props = {
   value: string;
@@ -9,6 +11,7 @@ type Props = {
   onSubmit: () => void;
 };
 
+// 入力欄とボタンを離して並べる今の見た目に合わせ、InputGroup ではなく Input と Button を使う
 export function CommentBox({ value, placeholder, busy = false, onChange, onSubmit }: Props) {
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -17,22 +20,17 @@ export function CommentBox({ value, placeholder, busy = false, onChange, onSubmi
 
   return (
     <form className="flex items-center gap-2" onSubmit={submit}>
-      <input
-        className="h-11 min-w-0 flex-1 rounded-full bg-muted px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <Input
+        className="h-11 flex-1 rounded-full border-0 bg-muted px-4 text-sm shadow-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-muted"
         aria-label="コメント"
         maxLength={100}
         placeholder={placeholder}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
-      <button
-        type="submit"
-        className="grid size-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-50"
-        aria-label="コメントを送る"
-        disabled={busy}
-      >
+      <Button type="submit" size="icon" className="size-11 rounded-full" aria-label="コメントを送る" disabled={busy}>
         <ArrowUp className="size-5" aria-hidden />
-      </button>
+      </Button>
     </form>
   );
 }

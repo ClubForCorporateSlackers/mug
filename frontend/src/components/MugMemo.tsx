@@ -1,17 +1,22 @@
 import type { ComponentProps } from 'react';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Textarea } from '@/components/ui/textarea';
 
 type Props = { label: string } & ComponentProps<'textarea'>;
 
 export function MugMemo({ label, id, ...props }: Props) {
   const fieldId = id ?? 'memo';
   return (
-    <label className="flex flex-col gap-1 text-sm font-bold" htmlFor={fieldId}>
-      {label}
-      <textarea
+    <Field className="gap-1">
+      <FieldLabel htmlFor={fieldId} className="font-bold">
+        {label}
+      </FieldLabel>
+      {/* field-sizing-fixed：shadcn の Textarea は文字に合わせて伸びるので、今までどおり高さを固定する */}
+      <Textarea
         id={fieldId}
-        className="min-h-24 rounded-2xl border bg-card px-3 py-2 text-base font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="field-sizing-fixed min-h-24 rounded-2xl bg-card px-3 py-2 text-base font-medium shadow-none md:text-base dark:bg-card"
         {...props}
       />
-    </label>
+    </Field>
   );
 }
