@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, MapPin } from 'lucide-react';
-import { cn } from 'cn';
+import { MapPin } from 'lucide-react';
 import { AppNotice } from '@/components/AppNotice';
 import { BottomNav } from '@/components/BottomNav';
 import { ChoiceSheet } from '@/components/ChoiceSheet';
+import { FilterChip } from '@/components/FilterChip';
+import { RankTypeTabs } from '@/components/RankTypeTabs';
 import { RankList } from '@/components/RankList';
 import { api } from '@/lib/api';
 import { currentMonth, monthLabel, prefectureName, shiftMonth } from '@/lib/labels';
@@ -90,45 +91,20 @@ export function RankingPage({ tab, onTab }: Props) {
       <div className="flex flex-1 flex-col gap-4 px-4 pt-6 pb-4">
         <h1 className="text-3xl font-bold">ランキング</h1>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-full bg-card px-3 py-2 text-sm font-bold"
-            onClick={() => setSheet('month')}
-          >
-            {monthLabel(month)}
-            <ChevronDown className="size-4" aria-hidden />
-          </button>
+          <FilterChip onClick={() => setSheet('month')}>{monthLabel(month)}</FilterChip>
           {type === 'city' ? (
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-full bg-card px-3 py-2 text-sm font-bold"
-              onClick={() => setSheet('prefecture')}
-            >
-              <MapPin className="size-4" aria-hidden />
+            <FilterChip icon={MapPin} onClick={() => setSheet('prefecture')}>
               {prefecture}
-              <ChevronDown className="size-4" aria-hidden />
-            </button>
+            </FilterChip>
           ) : null}
         </div>
-        <div className="grid grid-cols-3 rounded-full bg-muted p-1" role="tablist">
-          {SEGMENTS.map((segment) => (
-            <button
-              key={segment.id}
-              type="button"
-              role="tab"
-              aria-selected={type === segment.id}
-              className={cn('rounded-full py-2 text-sm font-bold', type === segment.id && 'bg-card')}
-              onClick={() => changeType(segment.id)}
-            >
-              {segment.label}
-            </button>
-          ))}
-        </div>
-        {type === 'blood' ? <AppNotice>「答えない」は順位に出しません。</AppNotice> : null}
-        {error ? <AppNotice tone="error">{error}</AppNotice> : null}
-        <div className="rounded-3xl bg-card px-4 py-4">
-          <RankList items={shown} />
-        </div>
+        <RankTypeTabs value={type} options={SEGMENTS} onChange={changeType}>
+          {type === 'blood' ? <AppNotice>「答えない」は順位に出しません。</AppNotice> : null}
+          {error ? <AppNotice tone="error">{error}</AppNotice> : null}
+          <div className="rounded-3xl bg-card px-4 py-4">
+            <RankList items={shown} />
+          </div>
+        </RankTypeTabs>
       </div>
       <BottomNav tab={tab} onChange={onTab} />
 

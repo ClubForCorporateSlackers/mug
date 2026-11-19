@@ -8,6 +8,8 @@ import { CenterMark } from '@/components/CenterMark';
 import { DangerChip } from '@/components/DangerChip';
 import { MugButton } from '@/components/MugButton';
 import { MugMark } from '@/components/MugMark';
+import { PillButton } from '@/components/PillButton';
+import { RoundIconButton } from '@/components/RoundIconButton';
 import { api } from '@/lib/api';
 import { dangerAtCenter, groupPins, spotsData, type DangerLevel, type DangerSpot } from '@/lib/danger';
 import { TOKYO_STATION } from '@/lib/geo';
@@ -278,26 +280,13 @@ export function MapPage({
               </div>
               {danger ? <DangerChip level={danger} /> : null}
             </div>
-            <button
-              type="button"
-              className="pointer-events-auto grid size-12 shrink-0 place-items-center rounded-full bg-card"
-              aria-label="マイページ"
-              onClick={onMe}
-            >
-              <UserRound className="size-5" aria-hidden />
-            </button>
+            <RoundIconButton icon={UserRound} label="マイページ" onClick={onMe} className="pointer-events-auto" />
           </div>
           {location === 'off' ? (
             <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-card px-3 py-2 text-sm font-bold">
               <Info className="size-5 shrink-0 text-primary" aria-hidden />
               <span className="flex-1">位置情報がオフのため、ピンを立てられません</span>
-              <button
-                type="button"
-                className="rounded-full bg-muted px-3 py-1.5 text-primary"
-                onClick={onAllowLocation}
-              >
-                許可する
-              </button>
+              <PillButton onClick={onAllowLocation}>許可する</PillButton>
             </div>
           ) : null}
           {location === 'off' && locationHint ? (
@@ -317,14 +306,7 @@ export function MapPage({
           ) : null}
         </div>
         <div className="pointer-events-none absolute inset-x-3 bottom-11 flex flex-col items-end gap-3">
-          <button
-            type="button"
-            className="pointer-events-auto grid size-12 place-items-center rounded-full bg-card"
-            onClick={locate}
-            aria-label="現在地へ"
-          >
-            <Navigation className="size-5" aria-hidden />
-          </button>
+          <RoundIconButton icon={Navigation} label="現在地へ" onClick={locate} className="pointer-events-auto" />
           <MugButton className="pointer-events-auto h-14 gap-3 text-lg" onClick={onPost} disabled={!canPost || posting}>
             <MugMark className="size-9 rounded-full bg-secondary p-1" decorative />
             {posting
