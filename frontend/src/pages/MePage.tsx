@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, Crosshair, Droplet, LogOut, Pencil } from 'lucide-react';
+import { Crosshair, Droplet, LogOut, Pencil } from 'lucide-react';
 import { ApiError, api } from '@/lib/api';
 import { AppNotice } from '@/components/AppNotice';
 import { BottomNav } from '@/components/BottomNav';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
+import { LinkButton } from '@/components/LinkButton';
 import { MenuRow } from '@/components/MenuRow';
 import { MugButton } from '@/components/MugButton';
 import { SwitchRow } from '@/components/SwitchRow';
@@ -62,10 +63,9 @@ export function MePage({
   return (
     <main className="flex min-h-svh flex-col">
       <div className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-4">
-        <button type="button" className="flex items-center gap-1 self-start font-bold text-primary" onClick={onBack}>
-          <ChevronLeft className="size-5" aria-hidden />
+        <LinkButton back onClick={onBack} className="self-start">
           マップ
-        </button>
+        </LinkButton>
         <h1 className="text-3xl font-bold">マイページ</h1>
         {!idToken ? (
           <>

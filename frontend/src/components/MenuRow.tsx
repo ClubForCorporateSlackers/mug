@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Item, ItemActions, ItemContent, ItemMedia } from '@/components/ui/item';
 
 type Props = {
   icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
@@ -8,16 +9,20 @@ type Props = {
   onClick: () => void;
 };
 
-// マイページなどの一覧の1行
+// マイページなどの一覧の1行。shadcn の Item を押せるボタンとして使う
 export function MenuRow({ icon: Icon, label, value, onClick }: Props) {
   return (
-    <button type="button" className="flex w-full items-center gap-3 px-3 py-3 text-left font-bold" onClick={onClick}>
-      <span className="grid size-9 place-items-center rounded-xl bg-secondary">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <span className="flex-1">{label}</span>
-      {value ? <span className="text-sm text-muted-foreground">{value}</span> : null}
-      <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
-    </button>
+    <Item asChild className="w-full flex-nowrap gap-3 rounded-none p-3 text-left text-base font-bold">
+      <button type="button" onClick={onClick}>
+        <ItemMedia className="size-9 rounded-xl bg-secondary">
+          <Icon className="size-5" aria-hidden />
+        </ItemMedia>
+        <ItemContent>{label}</ItemContent>
+        <ItemActions className="gap-3">
+          {value ? <span className="text-sm text-muted-foreground">{value}</span> : null}
+          <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
+        </ItemActions>
+      </button>
+    </Item>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { AppNotice } from '@/components/AppNotice';
+import { LinkButton } from '@/components/LinkButton';
 import { MugButton } from '@/components/MugButton';
 import { MugField } from '@/components/MugField';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -59,9 +60,9 @@ export function LoginPage({ notice, onBack, onSignedIn, onSignUp, onReset, onCon
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        <button type="button" className="self-start text-sm font-bold text-primary" onClick={onReset}>
+        <LinkButton small onClick={onReset} className="self-start">
           パスワードをお忘れですか？
-        </button>
+        </LinkButton>
         {error ? <AppNotice tone="error">{error}</AppNotice> : null}
         <div className="mt-auto flex flex-col gap-2">
           <MugButton type="submit" disabled={busy}>
