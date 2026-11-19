@@ -21,7 +21,7 @@ export function BloodPicker({ value, onChange }: Props) {
         <ToggleGroupItem
           key={option.value}
           value={option.value}
-          className="h-auto rounded-full border bg-card px-3 py-2 text-sm font-bold hover:bg-card hover:text-inherit data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-card"
+          className="touch-target h-auto rounded-full border bg-card px-3 py-2 text-sm font-bold hover:bg-card hover:text-inherit data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-card"
         >
           {option.label}
         </ToggleGroupItem>

@@ -40,7 +40,7 @@ export function LoginPage({ notice, onBack, onSignedIn, onSignUp, onReset, onCon
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="ログイン" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         {notice ? <AppNotice>{notice}</AppNotice> : null}
         <MugField
           label="メールアドレス"

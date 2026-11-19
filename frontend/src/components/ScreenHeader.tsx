@@ -12,7 +12,7 @@ export function ScreenHeader({ title, onBack }: Props) {
           type="button"
           variant="outline"
           size="icon"
-          className="rounded-full bg-card shadow-none"
+          className="size-11 rounded-full bg-card shadow-none"
           onClick={onBack}
           aria-label="戻る"
         >

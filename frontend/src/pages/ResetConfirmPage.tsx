@@ -30,7 +30,7 @@ export function ResetConfirmPage({ email, onBack, onDone }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="新しいパスワード" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         <p className="text-sm">{email} に届いた6けたのコードと、新しいパスワードを入れてください。</p>
         <MugField
           label="確認コード"

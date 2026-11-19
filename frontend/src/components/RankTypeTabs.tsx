@@ -19,7 +19,7 @@ export function RankTypeTabs({ value, options, onChange, children }: Props) {
           <TabsTrigger
             key={option.id}
             value={option.id}
-            className="h-auto rounded-full border-0 py-2 text-sm font-bold text-foreground data-[state=active]:bg-card group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none"
+            className="touch-target h-auto rounded-full border-0 py-2 text-sm font-bold text-foreground data-[state=active]:bg-card group-data-[variant=default]/tabs-list:data-[state=active]:shadow-none"
           >
             {option.label}
           </TabsTrigger>

@@ -20,7 +20,11 @@ export function LinkButton({ children, onClick, back = false, small = false, cla
     <Button
       type="button"
       variant="link"
-      className={cn('h-auto gap-1 p-0 font-bold has-[>svg]:px-0', small ? 'text-sm' : 'text-base', className)}
+      className={cn(
+        'touch-target h-auto gap-1 p-0 font-bold has-[>svg]:px-0',
+        small ? 'text-sm' : 'text-base',
+        className,
+      )}
       onClick={onClick}
     >
       {back ? <ChevronLeft className="size-5" aria-hidden /> : null}

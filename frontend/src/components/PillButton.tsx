@@ -9,7 +9,7 @@ export function PillButton({ children, onClick }: Props) {
     <Button
       type="button"
       variant="ghost"
-      className="h-auto rounded-full bg-muted px-3 py-1.5 text-sm font-bold text-primary"
+      className="touch-target h-auto rounded-full bg-muted px-3 py-1.5 text-sm font-bold text-primary"
       onClick={onClick}
     >
       {children}

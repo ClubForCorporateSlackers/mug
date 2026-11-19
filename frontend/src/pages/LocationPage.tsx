@@ -12,7 +12,7 @@ type Props = { busy: boolean; onAllow: () => void; onLater: () => void };
 
 export function LocationPage({ busy, onAllow, onLater }: Props) {
   return (
-    <main className="flex min-h-svh flex-col px-4 pt-10 pb-6">
+    <main className="flex min-h-svh flex-col px-4 pt-10 pb-safe-6">
       <div className="mx-auto grid size-40 place-items-center rounded-full border-2 border-dashed border-primary bg-secondary">
         <MugMark className="size-24" decorative />
       </div>

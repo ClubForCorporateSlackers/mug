@@ -49,7 +49,7 @@ export function ProfilePage({ idToken, onBack, onSaved }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="プロフィール" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         <MugField
           label="ニックネーム"
           name="nickname"

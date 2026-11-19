@@ -33,7 +33,7 @@ export function SignUpPage({ onBack, onCreated }: Props) {
   return (
     <main className="flex min-h-svh flex-col">
       <ScreenHeader title="アカウント作成" onBack={onBack} />
-      <form className="flex flex-1 flex-col gap-4 px-4 pb-6" onSubmit={submit}>
+      <form className="flex flex-1 flex-col gap-4 px-4 pb-safe-6" onSubmit={submit}>
         <MugField
           label="メールアドレス"
           name="email"

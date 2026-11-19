@@ -131,6 +131,36 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* 見た目はそのままで、押せる範囲だけを 44×44px 以上に広げる（Apple の HIG）。
+   shadcn の Tabs が ::after を使うので ::before を使う。例：<Button className="touch-target ..."> */
+@utility touch-target {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* 下の余白に、iPhone のホームバーの分（safe-area-inset-bottom）を足す。例：pb-safe-6 = 1.5rem + ホームバー */
+@utility pb-safe-* {
+  padding-bottom: calc(var(--spacing) * --value(integer) + env(safe-area-inset-bottom, 0px));
+}
+
+/* iPhone の Safari は 16px より小さい入力欄を触ると画面を拡大するので、指で触る端末では 16px 以上にする。
+   @layer の外に書いて、text-sm などのクラスより優先させる */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

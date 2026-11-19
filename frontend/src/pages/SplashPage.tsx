@@ -7,7 +7,7 @@ type Props = { onStart: () => void; onLogin: () => void };
 
 export function SplashPage({ onStart, onLogin }: Props) {
   return (
-    <main className="flex min-h-svh flex-col px-4 pt-16 pb-8">
+    <main className="flex min-h-svh flex-col px-4 pt-16 pb-safe-8">
       <div className="flex flex-col items-center gap-3 text-center">
         <MugMark className="h-32 w-24" />
         <h1 className="mt-2 text-3xl font-bold">むふ</h1>
