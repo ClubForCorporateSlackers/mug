@@ -18,6 +18,8 @@ export type UsersRepo = {
   saveProfile(userId: string, nickname: string, bloodType: string, now: string): Promise<UserItem>;
   // ピンを立てたときに pinCount を1増やす（ADD はない項目にも使える）
   incrementPinCount(userId: string): Promise<void>;
+  // ピンを消したときに pinCount を1減らす。0 以下・項目がない・未登録のときは何もしない
+  decrementPinCount(userId: string): Promise<void>;
 };
 
 export function createDynamoUsersRepo(tableName: string): UsersRepo {
@@ -55,6 +57,21 @@ export function createDynamoUsersRepo(tableName: string): UsersRepo {
           ExpressionAttributeValues: { ':one': 1 },
         }),
       );
+    },
+    async decrementPinCount(userId) {
+      try {
+        await db.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { userId },
+            UpdateExpression: 'ADD pinCount :neg',
+            ConditionExpression: 'attribute_exists(userId) AND pinCount > :zero', // マイナスにしない
+            ExpressionAttributeValues: { ':neg': -1, ':zero': 0 },
+          }),
+        );
+      } catch (e) {
+        if (!(e instanceof Error && e.name === 'ConditionalCheckFailedException')) throw e;
+      }
     },
   };
 }

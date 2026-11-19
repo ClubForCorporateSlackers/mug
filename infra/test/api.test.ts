@@ -110,7 +110,7 @@ test('DBのエラーなど想定外のときは 500 INTERNAL_ERROR', async () =>
     throw new Error('db down');
   };
   const { handler } = baseSetup({
-    overrides: { users: { get: fail, saveProfile: fail, incrementPinCount: fail } },
+    overrides: { users: { get: fail, saveProfile: fail, incrementPinCount: fail, decrementPinCount: fail } },
   });
   const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
   const res = await call(handler, event('GET', '/api/me', { token: GOOD_TOKEN }));

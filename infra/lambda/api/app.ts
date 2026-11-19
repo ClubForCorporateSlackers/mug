@@ -4,7 +4,7 @@ import { ApiError, type ApiResult, errorResponse, json, nowJst, parseJsonBody } 
 import { type CommentDeps, createComment, listComments } from './comment-api';
 import { toMeResponse, validateProfile } from './me';
 import { createPin, listPins } from './pin-api';
-import { type PinEditDeps, updatePin } from './pin-edit-api';
+import { deletePin, type PinEditDeps, updatePin } from './pin-edit-api';
 import { getRanking } from './ranking-api';
 import { type ReactionDeps, setReaction } from './reaction-api';
 
@@ -54,13 +54,21 @@ const routes: Record<string, Route> = {
 
 // パスに値（{pinId} など）が入るAPI。[メソッド, パスの形, 処理]。( ) の部分が params に入る
 const paramRoutes: [string, RegExp, Route][] = [
-  // 自分のピンを直す（ログイン必須。プロフィールは確かめない：自分のピンかどうかで十分なため）
+  // 自分のピンを直す・消す（ログイン必須。プロフィールは確かめない：自分のピンかどうかで十分なため）
   [
     'PATCH',
     /^\/api\/pins\/([^/]+)$/,
     async (event, deps, [pinId]) => {
       const userId = await requireUserId(event, deps.verifyIdToken);
       return json(200, await updatePin(userId, pinId, parseJsonBody(event), deps));
+    },
+  ],
+  [
+    'DELETE',
+    /^\/api\/pins\/([^/]+)$/,
+    async (event, deps, [pinId]) => {
+      const userId = await requireUserId(event, deps.verifyIdToken);
+      return json(200, await deletePin(userId, pinId, deps));
     },
   ],
   // コメント一覧（ログイン不要）

@@ -51,6 +51,11 @@ export function setup(
         const u = store.get(userId);
         if (u) u.pinCount = (u.pinCount ?? 0) + 1;
       },
+      // 本物と同じく、0 以下・項目がないときは減らさない
+      async decrementPinCount(userId) {
+        const u = store.get(userId);
+        if (u && (u.pinCount ?? 0) > 0) u.pinCount = (u.pinCount ?? 0) - 1;
+      },
     },
     pins: {
       async put(item) {
@@ -78,7 +83,7 @@ export function setup(
         const p = findPin(key);
         return p ? { ...p.reactions } : undefined;
       },
-      // 本物と同じく、自分のピンのときだけ書き換え、前の中身を返す
+      // 本物と同じく、自分のピンのときだけ書き換え・消し、前の中身を返す
       async updateOwned(key, userId, changes) {
         const p = findPin(key);
         if (!p) return { kind: 'not-found' };
@@ -86,6 +91,13 @@ export function setup(
         const old = { ...p, reactions: { ...p.reactions } };
         Object.assign(p, Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)));
         return { kind: 'ok', old };
+      },
+      async deleteOwned(key, userId) {
+        const p = findPin(key);
+        if (!p) return { kind: 'not-found' };
+        if (p.userId !== userId) return { kind: 'not-owner' };
+        pinStore.splice(pinStore.indexOf(p), 1);
+        return { kind: 'ok', old: p };
       },
     },
     // 本物のトランザクションと同じく、ピンがないか条件に合わなければ何も書かない
@@ -110,6 +122,15 @@ export function setup(
       async has(pinId, type, userId) {
         return reactionStore.has(`${pinId}|${reactionSk(type, userId)}`);
       },
+      async deleteAll(pinId, shouldStop) {
+        let deleted = 0;
+        for (const k of [...reactionStore.keys()].filter((k) => k.startsWith(`${pinId}|`))) {
+          if (shouldStop()) return { deleted, stopped: true };
+          reactionStore.delete(k);
+          deleted++;
+        }
+        return { deleted, stopped: false };
+      },
     },
     comments: {
       async put(item) {
@@ -121,6 +142,15 @@ export function setup(
           .sort((a, b) => (a.sk < b.sk ? -1 : 1)) // 古い順
           .slice(0, limit)
           .map(({ commentId, nickname, text, createdAt }) => ({ commentId, nickname, text, createdAt }));
+      },
+      async deleteAll(pinId, shouldStop) {
+        let deleted = 0;
+        for (const c of commentStore.filter((c) => c.pinId === pinId)) {
+          if (shouldStop()) return { deleted, stopped: true };
+          commentStore.splice(commentStore.indexOf(c), 1);
+          deleted++;
+        }
+        return { deleted, stopped: false };
       },
     },
     rankings: {

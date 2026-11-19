@@ -1,5 +1,12 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 import type { PinKey } from './pin-id';
 
 // Pins・Rankings テーブル（docs/db-schema.md）の読み書き。
@@ -29,8 +36,8 @@ export type PinSummary = Omit<PinItem, 'userId' | 'cityCode' | 'bloodType'>;
 // PATCH で変えられる項目（送った項目だけ）。位置を変えるときは、ずらした後の位置と市町村を入れる
 export type PinChanges = Partial<Pick<PinItem, 'stamp' | 'memo' | 'lat' | 'lng' | 'city' | 'cityCode'>>;
 
-// 自分のピンだけを書き換える処理の結果。
-// old は書き換える前の中身。同時に別の操作があっても、実際に書き換えた相手の中身になる
+// 自分のピンだけを書き換える・消す処理の結果。
+// old は書き換える前（消す前）の中身。同時に別の操作があっても、実際に書き換えた相手の中身になる
 export type OwnedResult = { kind: 'ok'; old: PinItem } | { kind: 'not-found' } | { kind: 'not-owner' };
 
 export type PinsRepo = {
@@ -45,6 +52,8 @@ export type PinsRepo = {
   getReactions(key: PinKey): Promise<Record<string, number> | undefined>;
   // 自分（userId）のピンなら changes の項目だけ書き換える。ほかの人のピン・ないピンには何も書かない
   updateOwned(key: PinKey, userId: string, changes: PinChanges): Promise<OwnedResult>;
+  // 自分（userId）のピンなら消す。ほかの人のピン・ないピンは消さない
+  deleteOwned(key: PinKey, userId: string): Promise<OwnedResult>;
 };
 
 export type RankingKind = 'user' | 'city' | 'blood';
@@ -157,6 +166,25 @@ export function createDynamoPinsRepo(tableName: string): PinsRepo {
             ExpressionAttributeNames: Object.fromEntries(fields.map(([f]) => [`#${f}`, f])),
             ExpressionAttributeValues: { ':uid': userId, ...Object.fromEntries(fields.map(([f, v]) => [`:${f}`, v])) },
             ReturnValues: 'ALL_OLD', // 書き換える前の中身（市町村が変わったかを、確実に知るため）
+            ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
+          }),
+        );
+        return { kind: 'ok', old: res.Attributes as PinItem };
+      } catch (e) {
+        const failure = ownedFailure(e);
+        if (failure) return failure;
+        throw e;
+      }
+    },
+    async deleteOwned(key, userId) {
+      try {
+        const res = await db.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: pinKey(key),
+            ConditionExpression: OWNER_CONDITION,
+            ExpressionAttributeValues: { ':uid': userId },
+            ReturnValues: 'ALL_OLD', // 消したピンの中身（件数を減らすのに使う）
             ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
           }),
         );

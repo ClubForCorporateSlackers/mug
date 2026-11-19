@@ -1,11 +1,12 @@
 import { call, event, GOOD_TOKEN, setup, SUB } from './fakes';
+import type { CommentItem } from '../lambda/api/comments';
 import { cellSize, encodeGeohash, JITTER_TRIES, jitterWithinCell } from '../lambda/api/geo';
 import { nowJst } from '../lambda/api/http';
 import type { PinItem } from '../lambda/api/pins';
 import { ulid } from '../lambda/api/ulid';
 import type { UserItem } from '../lambda/api/users';
 
-// PATCH /api/pins/{pinId} のテスト（偽物の DB・地理院API を使う）。
+// PATCH /api/pins/{pinId}・DELETE /api/pins/{pinId} のテスト（偽物の DB・地理院API を使う）。
 // 決めたことは docs/adr/feature-api-pins-edit.md。
 
 const KOMATSU: UserItem = { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 3 };
@@ -42,6 +43,9 @@ const publicId = (p: PinItem) => `${p.cell}-${p.pinId}`;
 // token に null を渡すと、トークンなし（ログインしていない）
 function patch(p: PinItem | string, body: unknown, token: string | null = GOOD_TOKEN) {
   return event('PATCH', `/api/pins/${typeof p === 'string' ? p : publicId(p)}`, { token: token ?? undefined, body });
+}
+function del(p: PinItem | string, token: string | null = GOOD_TOKEN) {
+  return event('DELETE', `/api/pins/${typeof p === 'string' ? p : publicId(p)}`, { token: token ?? undefined });
 }
 
 // ランキングの行を用意する（10月の分）
@@ -215,6 +219,121 @@ describe('jitterWithinCell（区画の中でずらす）', () => {
     const alwaysNorth = () => (calls++ % 2 === 0 ? 0.9999 : 0);
     expect(jitterWithinCell(nearEdge.lat, nearEdge.lng, cell, alwaysNorth)).toBeUndefined();
     expect(calls).toBe(JITTER_TRIES * 2);
+  });
+});
+
+describe('DELETE /api/pins/{pinId}', () => {
+  function comment(pinId: string, n: number): CommentItem {
+    return { pinId, sk: `2026-10-21T00:00:0${n}+09:00#C${n}`, commentId: `C${n}`, userId: OTHER, nickname: 'しばた', text: 'お大事に', createdAt: 'x' };
+  }
+
+  test('ピン・コメント・スタンプを消し、立てた月のランキング（人・市町村・血液型）と pinCount を1減らす', async () => {
+    const pin = makePin();
+    const otherPin = makePin({ userId: OTHER }, new Date('2026-10-21T01:00:00Z'));
+    const { handler, pinStore, commentStore, reactionStore, rankings, store } = setup({
+      users: [KOMATSU],
+      pins: [pin, otherPin],
+      comments: [comment(pin.pinId, 1), comment(pin.pinId, 2), comment(otherPin.pinId, 3)],
+    });
+    await call(handler, event('PUT', `/api/pins/${publicId(pin)}/reactions/odaiji`, { token: GOOD_TOKEN }));
+    await call(handler, event('PUT', `/api/pins/${publicId(otherPin)}/reactions/kaite`, { token: GOOD_TOKEN }));
+    seedRankings(rankings, {
+      [`2026-10#user|${SUB}`]: 3,
+      '2026-10#city|13101': 7,
+      '2026-10#blood|A': 4,
+      [`2026-11#user|${SUB}`]: 2, // 今月の分は変えない
+    });
+
+    const res = await call(handler, del(pin));
+
+    expect(res).toEqual({ status: 200, body: { pinId: publicId(pin) } });
+    expect(pinStore).toEqual([expect.objectContaining({ pinId: otherPin.pinId })]);
+    expect(commentStore.map((c) => c.commentId)).toEqual(['C3']); // ほかのピンのコメントは残す
+    expect([...reactionStore.keys()]).toEqual([`${otherPin.pinId}|kaite#${SUB}`]);
+    expect(rankings.get(`2026-10#user|${SUB}`)?.count).toBe(2);
+    expect(rankings.get('2026-10#city|13101')?.count).toBe(6);
+    expect(rankings.get('2026-10#blood|A')?.count).toBe(3);
+    expect(rankings.get(`2026-11#user|${SUB}`)?.count).toBe(2);
+    expect(store.get(SUB)?.pinCount).toBe(2);
+  });
+
+  test('2回目は 404 で、件数を二重に減らさない', async () => {
+    const pin = makePin();
+    const { handler, rankings, store } = setup({ users: [KOMATSU], pins: [pin] });
+    seedRankings(rankings, { [`2026-10#user|${SUB}`]: 3 });
+    expect((await call(handler, del(pin))).status).toBe(200);
+    expect((await call(handler, del(pin))).body.error).toBe('NOT_FOUND');
+    expect(rankings.get(`2026-10#user|${SUB}`)?.count).toBe(2);
+    expect(store.get(SUB)?.pinCount).toBe(2);
+  });
+
+  test('血液型は、立てたときの値（ピンに保存）で減らす。プロフィールを変えていても同じ', async () => {
+    const pin = makePin({ bloodType: 'O' });
+    const { handler, rankings } = setup({ users: [KOMATSU], pins: [pin] }); // 今のプロフィールは A
+    seedRankings(rankings, { '2026-10#blood|O': 2, '2026-10#blood|A': 2 });
+    await call(handler, del(pin));
+    expect(rankings.get('2026-10#blood|O')?.count).toBe(1);
+    expect(rankings.get('2026-10#blood|A')?.count).toBe(2);
+  });
+
+  test('血液型を持たない古いピンは、今のプロフィールの血液型で減らす', async () => {
+    const pin = makePin({ bloodType: undefined });
+    const { handler, rankings } = setup({ users: [KOMATSU], pins: [pin] });
+    seedRankings(rankings, { '2026-10#blood|A': 2 });
+    await call(handler, del(pin));
+    expect(rankings.get('2026-10#blood|A')?.count).toBe(1);
+  });
+
+  test('件数はマイナスにしない（行がない・0件・pinCount がない）。市町村が不明なら市町村は触らない', async () => {
+    const pin = makePin({ cityCode: null, city: '不明' });
+    const { handler, rankings, store } = setup({ users: [{ ...KOMATSU, pinCount: undefined }], pins: [pin] });
+    seedRankings(rankings, { [`2026-10#user|${SUB}`]: 0 });
+    expect((await call(handler, del(pin))).status).toBe(200);
+    expect(rankings.get(`2026-10#user|${SUB}`)?.count).toBe(0);
+    expect(rankings.size).toBe(1); // マイナスの行を作らない
+    expect(store.get(SUB)?.pinCount).toBeUndefined();
+  });
+
+  test('コメントを消す途中で失敗・時間切れでも 200（ピンは消し済み）。ログに残す', async () => {
+    const errors: string[] = [];
+    const spy = jest.spyOn(console, 'error').mockImplementation((...a) => void errors.push(a.join(' ')));
+    const pin = makePin();
+    const { handler, pinStore } = setup({
+      users: [KOMATSU],
+      pins: [pin],
+      comments: [comment(pin.pinId, 1)],
+      overrides: { deleteBudgetMs: -1 }, // 最初から時間切れ
+    });
+    const res = await call(handler, del(pin));
+    spy.mockRestore();
+    expect(res.status).toBe(200);
+    expect(pinStore).toHaveLength(0);
+    expect(errors.join('\n')).toContain('時間切れでコメントを消しきれませんでした（0件消した');
+  });
+
+  test('ピンを消したあとは、コメント一覧は 404', async () => {
+    const pin = makePin();
+    const { handler } = setup({ users: [KOMATSU], pins: [pin], comments: [comment(pin.pinId, 1)] });
+    await call(handler, del(pin));
+    expect((await call(handler, event('GET', `/api/pins/${publicId(pin)}/comments`))).status).toBe(404);
+  });
+
+  test('ほかの人のピンは 403 NOT_OWNER（消さない・件数も減らさない）', async () => {
+    const pin = makePin({ userId: OTHER });
+    const { handler, pinStore, rankings } = setup({ users: [KOMATSU], pins: [pin] });
+    seedRankings(rankings, { '2026-10#city|13101': 7 });
+    const res = await call(handler, del(pin));
+    expect(res).toMatchObject({ status: 403, body: { error: 'NOT_OWNER' } });
+    expect(pinStore).toHaveLength(1);
+    expect(rankings.get('2026-10#city|13101')?.count).toBe(7);
+  });
+
+  test('ログインしていなければ 401、形が違う pinId は 404', async () => {
+    const pin = makePin();
+    const { handler, pinStore } = setup({ users: [KOMATSU], pins: [pin] });
+    expect((await call(handler, del(pin, null))).status).toBe(401);
+    expect((await call(handler, del('xn76-bad'))).status).toBe(404);
+    expect(pinStore).toHaveLength(1);
   });
 });
 

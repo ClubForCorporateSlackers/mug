@@ -90,24 +90,26 @@ export class MugStack extends cdk.Stack {
       }),
     );
     // Pins：ピンの保存（PutItem）、地図の範囲の取得（Query）、
-    // ピンがあるかの確認とスタンプの件数の読み出し（GetItem）、commentCount・reactions の増減（UpdateItem）
+    // ピンがあるかの確認とスタンプの件数の読み出し（GetItem）、commentCount・reactions の増減と自分のピンの変更（UpdateItem）、
+    // 自分のピンの削除（DeleteItem）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ['dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:UpdateItem'],
+        actions: ['dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem'],
         resources: [tables.Pins.tableArn],
       }),
     );
-    // Comments：コメントの保存（PutItem）と一覧（Query）
+    // Comments：コメントの保存（PutItem）と一覧（Query）、ピンを消したときにそのピンのコメントを消す（DeleteItem）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ['dynamodb:PutItem', 'dynamodb:Query'],
+        actions: ['dynamodb:PutItem', 'dynamodb:Query', 'dynamodb:DeleteItem'],
         resources: [tables.Comments.tableArn],
       }),
     );
-    // Reactions：押す（PutItem）、取り消す（DeleteItem）、自分が押したかの確認（GetItem）
+    // Reactions：押す（PutItem）、取り消す（DeleteItem）、自分が押したかの確認（GetItem）、
+    // ピンを消したときにそのピンのスタンプを探す（Query）
     apiFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:GetItem'],
+        actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:GetItem', 'dynamodb:Query'],
         resources: [tables.Reactions.tableArn],
       }),
     );
