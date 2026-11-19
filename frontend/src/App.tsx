@@ -45,6 +45,8 @@ function App() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState('');
   const [pinsVersion, setPinsVersion] = useState(0);
+  // この画面を開いているあいだに立てたピン。投稿の直後の読み直しには、まだ入っていないことがあるので、地図に足して描く
+  const [postedPins, setPostedPins] = useState<Pin[]>([]);
   const locationDecided = useRef(false);
 
   const requestLocation = useCallback(async () => {
@@ -168,6 +170,7 @@ function App() {
         idToken: session.idToken,
         body: { lat: position.lat, lng: position.lng, stamp: null, memo: '' },
       });
+      setPostedPins((list) => [...list, pin]);
       setPinsVersion((value) => value + 1);
       push({ name: 'pin', pin });
     } catch (err) {
@@ -319,6 +322,7 @@ function App() {
         posting={posting}
         postError={postError}
         pinsVersion={pinsVersion}
+        postedPins={postedPins}
         onPost={() => void postHere()}
         onOpenPin={(pin) => push({ name: 'pin', pin })}
         onMe={() => push({ name: 'me' })}
