@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer';
 
 type Props = {
   label: string;
@@ -6,23 +7,18 @@ type Props = {
   children: ReactNode;
 };
 
-// 画面の下から出るシート。外側を押すと閉じる。
+// 画面の下から出るシート（shadcn/ui の Drawer）。
+// 下に引っ張る・外側を押す・Esc キーのどれでも閉じる。開いているあいだだけ表示する（閉じたら親が消す）
 export function BottomSheet({ label, onClose, children }: Props) {
   return (
-    <div
-      className="fixed inset-0 z-20 mx-auto flex max-w-[430px] flex-col justify-end bg-foreground/30"
-      onClick={onClose}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label={label}
-        className="flex max-h-[88svh] flex-col overflow-y-auto rounded-t-3xl bg-card px-4 pt-2 pb-6"
-        onClick={(event) => event.stopPropagation()}
+    <Drawer open onOpenChange={(open) => (open ? undefined : onClose())}>
+      <DrawerContent
+        aria-describedby={undefined}
+        className="mx-auto max-h-[88svh] max-w-[430px] rounded-t-3xl border-0 bg-card data-[vaul-drawer-direction=bottom]:max-h-[88svh] data-[vaul-drawer-direction=bottom]:rounded-t-3xl data-[vaul-drawer-direction=bottom]:border-t-0"
       >
-        <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-muted" aria-hidden />
-        {children}
-      </section>
-    </div>
+        <DrawerTitle className="sr-only">{label}</DrawerTitle>
+        <div className="flex flex-col overflow-y-auto px-4 pt-3 pb-6">{children}</div>
+      </DrawerContent>
+    </Drawer>
   );
 }
