@@ -15,40 +15,77 @@ export const MAX_PINS = 200;
 
 // ---- 入力チェック ----
 
+// 1つずつの項目のチェック（POST /api/pins と PATCH /api/pins/{pinId} で同じルールを使う）
+
+function checkLat(lat: unknown): number {
+  if (typeof lat !== 'number' || !Number.isFinite(lat) || lat < 20 || lat > 46) {
+    throw new ApiError('VALIDATION_ERROR', '緯度（lat）は日本の範囲（20〜46）の数で送ってください');
+  }
+  return lat;
+}
+
+function checkLng(lng: unknown): number {
+  if (typeof lng !== 'number' || !Number.isFinite(lng) || lng < 122 || lng > 154) {
+    throw new ApiError('VALIDATION_ERROR', '経度（lng）は日本の範囲（122〜154）の数で送ってください');
+  }
+  return lng;
+}
+
+// スタンプは任意（未決定のため）。null か なし ならスタンプなし
+function checkStamp(stamp: unknown): string | null {
+  if (stamp === undefined || stamp === null) return null;
+  if (!(typeof stamp === 'string' && (PIN_STAMPS as readonly string[]).includes(stamp))) {
+    throw new ApiError('VALIDATION_ERROR', `スタンプは ${PIN_STAMPS.join(' / ')} のどれかを選んでください`);
+  }
+  return stamp;
+}
+
+// null か なし なら ""
+function checkMemo(memo: unknown): string {
+  if (memo === undefined || memo === null) return '';
+  if (typeof memo !== 'string') throw new ApiError('VALIDATION_ERROR', 'メモは文字で入力してください');
+  // 前後の空白は取り除き、改行は \n にそろえる。文字数は見た目の1文字に近い数え方（/api/me と同じ）
+  const text = memo.replace(/\r\n?/g, '\n').trim();
+  if (Array.from(text).length > MEMO_MAX) {
+    throw new ApiError('VALIDATION_ERROR', `メモは${MEMO_MAX}文字以内で入力してください`);
+  }
+  // 改行以外の制御文字（タブなど）は受け付けない
+  if (/[^\P{Cc}\n]/u.test(text)) {
+    throw new ApiError('VALIDATION_ERROR', 'メモに使えない文字が含まれています');
+  }
+  return text;
+}
+
 // 位置はチェックしてから jitter に渡すだけ。元の座標はこのあと保存・ログ出力・返却しない
 export function validatePinInput(body: unknown): { lat: number; lng: number; stamp: string | null; memo: string } {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     throw new ApiError('VALIDATION_ERROR', '本文は { "lat": ..., "lng": ..., "stamp": ..., "memo": ... } の形で送ってください');
   }
   const { lat, lng, stamp, memo } = body as Record<string, unknown>;
+  return { lat: checkLat(lat), lng: checkLng(lng), stamp: checkStamp(stamp), memo: checkMemo(memo) };
+}
 
-  if (typeof lat !== 'number' || !Number.isFinite(lat) || lat < 20 || lat > 46) {
-    throw new ApiError('VALIDATION_ERROR', '緯度（lat）は日本の範囲（20〜46）の数で送ってください');
-  }
-  if (typeof lng !== 'number' || !Number.isFinite(lng) || lng < 122 || lng > 154) {
-    throw new ApiError('VALIDATION_ERROR', '経度（lng）は日本の範囲（122〜154）の数で送ってください');
-  }
+// PATCH 用。送った項目だけを返す（送らなかった項目は undefined のまま＝変えない）
+export type PinPatchInput = { stamp?: string | null; memo?: string; position?: { lat: number; lng: number } };
 
-  // スタンプは任意（未決定のため）。null か なし ならスタンプなし
-  if (stamp !== undefined && stamp !== null && !(typeof stamp === 'string' && (PIN_STAMPS as readonly string[]).includes(stamp))) {
-    throw new ApiError('VALIDATION_ERROR', `スタンプは ${PIN_STAMPS.join(' / ')} のどれかを選んでください`);
+export function validatePinPatchInput(body: unknown): PinPatchInput {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw new ApiError('VALIDATION_ERROR', '本文は { "stamp": ..., "memo": ..., "lat": ..., "lng": ... } の形で送ってください');
   }
-
-  let text = '';
-  if (memo !== undefined && memo !== null) {
-    if (typeof memo !== 'string') throw new ApiError('VALIDATION_ERROR', 'メモは文字で入力してください');
-    // 前後の空白は取り除き、改行は \n にそろえる。文字数は見た目の1文字に近い数え方（/api/me と同じ）
-    text = memo.replace(/\r\n?/g, '\n').trim();
-    if (Array.from(text).length > MEMO_MAX) {
-      throw new ApiError('VALIDATION_ERROR', `メモは${MEMO_MAX}文字以内で入力してください`);
+  const { lat, lng, stamp, memo } = body as Record<string, unknown>;
+  const input: PinPatchInput = {};
+  if (stamp !== undefined) input.stamp = checkStamp(stamp); // null ならスタンプを外す
+  if (memo !== undefined) input.memo = checkMemo(memo); // null なら "" にする
+  if (lat !== undefined || lng !== undefined) {
+    if (lat === undefined || lng === undefined) {
+      throw new ApiError('VALIDATION_ERROR', '位置を変えるときは、緯度（lat）と経度（lng）を両方送ってください');
     }
-    // 改行以外の制御文字（タブなど）は受け付けない
-    if (/[^\P{Cc}\n]/u.test(text)) {
-      throw new ApiError('VALIDATION_ERROR', 'メモに使えない文字が含まれています');
-    }
+    input.position = { lat: checkLat(lat), lng: checkLng(lng) };
   }
-
-  return { lat, lng, stamp: (stamp as string | null | undefined) ?? null, memo: text };
+  if (input.stamp === undefined && input.memo === undefined && !input.position) {
+    throw new ApiError('VALIDATION_ERROR', '変える項目（stamp・memo・lat と lng）を1つ以上送ってください');
+  }
+  return input;
 }
 
 // 数の形の文字列だけ受け付ける（"", "Infinity", "1e3", "0x10" などは不可）
@@ -114,7 +151,7 @@ export type PinDeps = {
   now?: () => Date;
 };
 
-const BLOOD_LABEL: Record<string, string> = { A: 'A型', B: 'B型', O: 'O型', AB: 'AB型', UNKNOWN: '不明' };
+export const BLOOD_LABEL: Record<string, string> = { A: 'A型', B: 'B型', O: 'O型', AB: 'AB型', UNKNOWN: '不明' };
 
 export async function createPin(userId: string, body: unknown, deps: PinDeps) {
   const input = validatePinInput(body);
@@ -141,6 +178,7 @@ export async function createPin(userId: string, body: unknown, deps: PinDeps) {
     stamp: input.stamp,
     memo: input.memo,
     userId,
+    bloodType: user.bloodType, // 消すときに、立てたときの血液型の件数を減らすため（docs/adr/feature-api-pins-edit.md）
     commentCount: 0,
     reactions: {},
     createdAt,
@@ -160,8 +198,13 @@ export async function createPin(userId: string, body: unknown, deps: PinDeps) {
   const failed = results.filter((r) => r.status === 'rejected').length;
   if (failed > 0) console.error(`POST /api/pins: ${failed}件の件数の更新に失敗しました（pinId=${pinId}）`);
 
+  return toSavedPinResponse(item);
+}
+
+// POST /api/pins の 201 と PATCH /api/pins/{pinId} の 200 の形（commentCount・reactions は含めない）
+export function toSavedPinResponse(item: PinSummary) {
   const { commentCount: _c, reactions: _r, ...rest } = toPinResponse(item);
-  return rest; // api-spec.md の 201 の形（commentCount・reactions は含めない）
+  return rest;
 }
 
 export async function listPins(query: Record<string, string | undefined> | undefined, deps: Pick<PinDeps, 'pins'>) {

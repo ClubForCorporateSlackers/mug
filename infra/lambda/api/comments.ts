@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DELETE_MAX_ATTEMPTS, deletePartition, type DeleteAllResult } from './partition';
 
 // Comments テーブル（docs/db-schema.md）の読み書き。
 
@@ -20,12 +21,15 @@ export type CommentsRepo = {
   put(item: CommentItem): Promise<void>;
   // 古い順に最大 limit 件
   list(pinId: string, limit: number): Promise<CommentSummary[]>;
+  // そのピンのコメントを全部消す（ピンを消したとき）。shouldStop が true を返したら、途中でやめる
+  deleteAll(pinId: string, shouldStop: () => boolean): Promise<DeleteAllResult>;
 };
 
 const SUMMARY_FIELDS = ['commentId', 'nickname', 'text', 'createdAt'];
 
 export function createDynamoCommentsRepo(tableName: string): CommentsRepo {
-  const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+  // 書き込みが混んで断られたときの、SDK の自動のやり直しの回数を少し増やす（消すときに1件ずつ書くため）
+  const db = DynamoDBDocumentClient.from(new DynamoDBClient({ maxAttempts: DELETE_MAX_ATTEMPTS }));
   return {
     async put(item) {
       await db.send(new PutCommand({ TableName: tableName, Item: item }));
@@ -46,6 +50,9 @@ export function createDynamoCommentsRepo(tableName: string): CommentsRepo {
         }),
       );
       return (res.Items ?? []) as CommentSummary[];
+    },
+    async deleteAll(pinId, shouldStop) {
+      return deletePartition(db, tableName, 'pinId', pinId, shouldStop);
     },
   };
 }

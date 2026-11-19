@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DELETE_MAX_ATTEMPTS, deletePartition, type DeleteAllResult } from './partition';
 import type { PinKey } from './pin-id';
 
 // Reactions テーブル（docs/db-schema.md）の読み書き。
@@ -25,6 +26,8 @@ export type ReactionsRepo = {
   remove(key: PinKey, type: string, userId: string): Promise<RemoveResult>;
   // その人がその種類を押しているか
   has(pinId: string, type: string, userId: string): Promise<boolean>;
+  // そのピンのスタンプを全部消す（ピンを消したとき。Pins の件数は直さない）。shouldStop が true なら途中でやめる
+  deleteAll(pinId: string, shouldStop: () => boolean): Promise<DeleteAllResult>;
 };
 
 export function reactionSk(type: string, userId: string): string {
@@ -39,7 +42,8 @@ function cancelledCodes(e: unknown): string[] | undefined {
 }
 
 export function createDynamoReactionsRepo(reactionsTable: string, pinsTable: string): ReactionsRepo {
-  const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+  // 書き込みが混んで断られたときの、SDK の自動のやり直しの回数を少し増やす（消すときに1件ずつ書くため）
+  const db = DynamoDBDocumentClient.from(new DynamoDBClient({ maxAttempts: DELETE_MAX_ATTEMPTS }));
 
   // Pins の reactions.<種類> を delta だけ増減する書き込み（ピンがあるときだけ）。
   // 件数の項目がまだなければ 0 として計算する
@@ -117,6 +121,9 @@ export function createDynamoReactionsRepo(reactionsTable: string, pinsTable: str
         }),
       );
       return res.Item !== undefined;
+    },
+    async deleteAll(pinId, shouldStop) {
+      return deletePartition(db, reactionsTable, 'pinId', pinId, shouldStop);
     },
   };
 }

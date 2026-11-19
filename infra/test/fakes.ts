@@ -51,6 +51,11 @@ export function setup(
         const u = store.get(userId);
         if (u) u.pinCount = (u.pinCount ?? 0) + 1;
       },
+      // 本物と同じく、0 以下・項目がないときは減らさない
+      async decrementPinCount(userId) {
+        const u = store.get(userId);
+        if (u && (u.pinCount ?? 0) > 0) u.pinCount = (u.pinCount ?? 0) - 1;
+      },
     },
     pins: {
       async put(item) {
@@ -59,8 +64,10 @@ export function setup(
       async queryCell(cell, limit) {
         queriedCells.push(cell);
         const all = pinStore.filter((p) => p.cell === cell).sort((a, b) => (a.sk < b.sk ? 1 : -1));
-        // 本物と同じく userId・cityCode は読まない
-        const items: PinSummary[] = all.slice(0, limit).map(({ userId: _u, cityCode: _cc, ...rest }) => rest);
+        // 本物と同じく userId・cityCode・bloodType は読まない
+        const items: PinSummary[] = all
+          .slice(0, limit)
+          .map(({ userId: _u, cityCode: _cc, bloodType: _b, ...rest }) => rest);
         return { items, hasMore: all.length > limit };
       },
       async exists(key) {
@@ -75,6 +82,22 @@ export function setup(
       async getReactions(key) {
         const p = findPin(key);
         return p ? { ...p.reactions } : undefined;
+      },
+      // 本物と同じく、自分のピンのときだけ書き換え・消し、前の中身を返す
+      async updateOwned(key, userId, changes) {
+        const p = findPin(key);
+        if (!p) return { kind: 'not-found' };
+        if (p.userId !== userId) return { kind: 'not-owner' };
+        const old = { ...p, reactions: { ...p.reactions } };
+        Object.assign(p, Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)));
+        return { kind: 'ok', old };
+      },
+      async deleteOwned(key, userId) {
+        const p = findPin(key);
+        if (!p) return { kind: 'not-found' };
+        if (p.userId !== userId) return { kind: 'not-owner' };
+        pinStore.splice(pinStore.indexOf(p), 1);
+        return { kind: 'ok', old: p };
       },
     },
     // 本物のトランザクションと同じく、ピンがないか条件に合わなければ何も書かない
@@ -99,6 +122,15 @@ export function setup(
       async has(pinId, type, userId) {
         return reactionStore.has(`${pinId}|${reactionSk(type, userId)}`);
       },
+      async deleteAll(pinId, shouldStop) {
+        let deleted = 0;
+        for (const k of [...reactionStore.keys()].filter((k) => k.startsWith(`${pinId}|`))) {
+          if (shouldStop()) return { deleted, stopped: true };
+          reactionStore.delete(k);
+          deleted++;
+        }
+        return { deleted, stopped: false };
+      },
     },
     comments: {
       async put(item) {
@@ -110,6 +142,15 @@ export function setup(
           .sort((a, b) => (a.sk < b.sk ? -1 : 1)) // 古い順
           .slice(0, limit)
           .map(({ commentId, nickname, text, createdAt }) => ({ commentId, nickname, text, createdAt }));
+      },
+      async deleteAll(pinId, shouldStop) {
+        let deleted = 0;
+        for (const c of commentStore.filter((c) => c.pinId === pinId)) {
+          if (shouldStop()) return { deleted, stopped: true };
+          commentStore.splice(commentStore.indexOf(c), 1);
+          deleted++;
+        }
+        return { deleted, stopped: false };
       },
     },
     rankings: {
@@ -124,6 +165,11 @@ export function setup(
           .map(([k, v]) => ({ key: k.slice(prefix.length), ...v }))
           .sort((a, b) => (a.key < b.key ? -1 : 1)) // 本物と同じく key の順
           .slice(0, limit);
+      },
+      // 本物と同じく、行がないか0件なら何もしない（行は消さない）
+      async decrement(month, kind, key) {
+        const row = rankings.get(`${month}#${kind}|${key}`);
+        if (row && row.count > 0) row.count -= 1;
       },
     },
     reverseGeocode: async (lat, lng) => {
