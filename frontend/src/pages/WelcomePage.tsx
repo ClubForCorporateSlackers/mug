@@ -20,7 +20,7 @@ export function WelcomePage({ onStart, onLogin, onDemo, demoBusy = false, demoEr
     <Screen tone="brand">
       <div className="flex flex-1 flex-col items-center gap-4 px-4 pt-14 text-center">
         <MugMark className="h-[146px] w-[104px]" />
-        <h1 className="text-[34px] leading-[41px] font-bold">mug</h1>
+        <h1 className="text-[34px] leading-[41px] font-bold">むふ</h1>
         <p className="text-base leading-6 font-medium">
           「ここで刺された」をみんなで共有して、
           <br />

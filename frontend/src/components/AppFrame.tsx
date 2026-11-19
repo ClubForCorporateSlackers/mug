@@ -9,7 +9,7 @@ export function AppFrame({ children }: Props) {
     <div className="min-h-svh bg-secondary">
       <aside className="fixed top-1/3 left-[max(2rem,calc(50%-215px-380px))] hidden w-80 flex-col gap-3 xl:flex">
         <MugMark label="" className="h-[74px] w-[53px]" />
-        <p className="text-[28px] leading-[38px] font-bold">mug</p>
+        <p className="text-[28px] leading-[38px] font-bold">むふ</p>
         <p className="text-base leading-6 font-medium text-muted-foreground">
           スマホで開くと、刺された場所にすぐピンを立てられます。
         </p>
