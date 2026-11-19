@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-59 -3 942 942">
+  <!-- アプリのアイコンの元（pwa-assets.config.ts で PNG にする）。favicon.svg のキャラクターだけを正方形の真ん中に置いた -->
+  <path d="M300 110C270 62 240 40 205 38M524 110C554 62 584 40 618 38" fill="none" stroke="#4b506b" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="205" cy="38" r="26" fill="#4b506b"/>
+  <circle cx="618" cy="38" r="26" fill="#4b506b"/>
+  <circle cx="412" cy="405" r="325" fill="#4b506b"/>
+  <circle cx="290" cy="355" r="106" fill="#fff"/>
+  <circle cx="535" cy="355" r="106" fill="#fff"/>
+  <circle cx="300" cy="365" r="65" fill="#1d1b30"/>
+  <circle cx="525" cy="365" r="65" fill="#1d1b30"/>
+  <circle cx="322" cy="340" r="22" fill="#fff"/>
+  <circle cx="547" cy="340" r="22" fill="#fff"/>
+  <circle cx="280" cy="392" r="10" fill="#fff"/>
+  <circle cx="505" cy="392" r="10" fill="#fff"/>
+  <ellipse cx="180" cy="497" rx="50" ry="31" fill="#db8899"/>
+  <ellipse cx="645" cy="497" rx="50" ry="31" fill="#db8899"/>
+  <path d="M412 925L330 630A85 85 0 1 1 494 630Z" fill="#d73437" stroke="#f9de86" stroke-width="14" stroke-linejoin="round" paint-order="stroke"/>
+  <circle cx="412" cy="607" r="31" fill="#fff"/>
+</svg>

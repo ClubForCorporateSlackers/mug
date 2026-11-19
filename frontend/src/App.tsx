@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppNotice } from '@/components/AppNotice';
 import { MugMark } from '@/components/MugMark';
+import { UpdateNotice } from '@/components/UpdateNotice';
 import { ApiError, api } from '@/lib/api';
 import { currentSession, signOut, type Session } from '@/lib/auth';
 import {
@@ -13,6 +15,7 @@ import {
   type LatLng,
   type LocationState,
 } from '@/lib/location';
+import { useAppUpdate, useOnline } from '@/lib/pwa';
 import type { Route, TabName } from '@/lib/route';
 import type { Pin, Profile } from '@/lib/types';
 import { AboutPage } from '@/pages/AboutPage';
@@ -31,8 +34,11 @@ import { SplashPage } from '@/pages/SplashPage';
 
 const PASSWORD_CHANGED = 'パスワードを変更しました。新しいパスワードでログインしてください';
 const LOCATION_BLOCKED = 'ブラウザの設定で、このサイトの位置情報を許可してください';
+const OFFLINE = 'オフラインです。ピンの読み込みや投稿はできません';
 
 function App() {
+  const appUpdate = useAppUpdate();
+  const online = useOnline();
   const [route, setRoute] = useState<Route>({ name: 'splash' });
   // たどってきた画面（「戻る」で1つ前に戻るため）。下のタブの切り替えと、ログイン・登録が終わったときに空にする
   const [history, setHistory] = useState<Route[]>([]);
@@ -341,7 +347,15 @@ function App() {
     );
   }
 
-  return <div className="mx-auto w-full max-w-[430px]">{page}</div>;
+  return (
+    <div className="mx-auto w-full max-w-[430px]">
+      {page}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-50 mx-auto flex w-full max-w-[430px] flex-col gap-2 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        {online ? null : <AppNotice>{OFFLINE}</AppNotice>}
+        {appUpdate.needRefresh ? <UpdateNotice onUpdate={appUpdate.update} onClose={appUpdate.dismiss} /> : null}
+      </div>
+    </div>
+  );
 }
 
 export default App;
