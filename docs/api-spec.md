@@ -1,6 +1,6 @@
 # API仕様書（案）蚊に刺された場所を共有するアプリ
 
-作成：小松（バックエンド担当）／ 作成日：2026-11-16（案Fに合わせて更新）／ 状態：**案（フロント担当と要確認）**
+作成：Jiji824（バックエンド担当）／ 作成日：2026-11-16（案Fに合わせて更新）／ 状態：**案（フロント担当と要確認）**
 
 DBの中身は [db-schema.md](./db-schema.md) を参照。
 
@@ -87,7 +87,7 @@ DBの中身は [db-schema.md](./db-schema.md) を参照。
 
 **返すもの（200）**
 ```json
-{ "userId": "a1b2…", "nickname": "こまつ", "bloodType": "A", "pinCount": 3 }
+{ "userId": "a1b2…", "nickname": "Jiji824", "bloodType": "A", "pinCount": 3 }
 ```
 - まだ登録していない場合は `404 NOT_FOUND`。フロントはプロフィール登録画面へ移動する
 
@@ -95,7 +95,7 @@ DBの中身は [db-schema.md](./db-schema.md) を参照。
 
 **送るもの**
 ```json
-{ "nickname": "こまつ", "bloodType": "A" }
+{ "nickname": "Jiji824", "bloodType": "A" }
 ```
 
 | 項目 | 必須 | ルール |
@@ -182,7 +182,7 @@ GET /api/pins?minLat=35.60&maxLat=35.75&minLng=139.65&maxLng=139.85
 ```json
 {
   "comments": [
-    { "commentId": "01JE…", "nickname": "しばた", "text": "お大事に！", "createdAt": "2026-11-16T11:00:00+09:00" }
+    { "commentId": "01JE…", "nickname": "shibatanaoto0428", "text": "お大事に！", "createdAt": "2026-11-16T11:00:00+09:00" }
   ]
 }
 ```
@@ -240,8 +240,8 @@ GET /api/rankings?type=user&month=2026-11
   "type": "user",
   "month": "2026-11",
   "items": [
-    { "rank": 1, "label": "こまつ", "count": 12 },
-    { "rank": 2, "label": "たなか", "count": 8 }
+    { "rank": 1, "label": "Jiji824", "count": 12 },
+    { "rank": 2, "label": "kokokoko0825", "count": 8 }
   ]
 }
 ```

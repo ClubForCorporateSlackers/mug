@@ -43,10 +43,10 @@ describe('GET /api/me', () => {
 
   test('登録済みならプロフィールを返す（pinCount がなければ 0）', async () => {
     const { handler } = setup([
-      { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x' },
+      { userId: SUB, nickname: 'Jiji824', bloodType: 'A', createdAt: 'x', updatedAt: 'x' },
     ]);
     const res = await call(handler, event('GET', '/api/me', { token: GOOD_TOKEN }));
-    expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'こまつ', bloodType: 'A', pinCount: 0 } });
+    expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'Jiji824', bloodType: 'A', pinCount: 0 } });
   });
 });
 
@@ -55,9 +55,9 @@ describe('PUT /api/me', () => {
     const { handler, store } = setup();
     const res = await call(
       handler,
-      event('PUT', '/api/me', { token: GOOD_TOKEN, body: { nickname: ' こまつ ', bloodType: 'AB', userId: 'hacker' } }),
+      event('PUT', '/api/me', { token: GOOD_TOKEN, body: { nickname: ' Jiji824 ', bloodType: 'AB', userId: 'hacker' } }),
     );
-    expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'こまつ', bloodType: 'AB', pinCount: 0 } });
+    expect(res).toEqual({ status: 200, body: { userId: SUB, nickname: 'Jiji824', bloodType: 'AB', pinCount: 0 } });
     expect(store.has('hacker')).toBe(false);
     expect(store.get(SUB)?.pinCount).toBe(0); // 登録のときに pinCount を 0 で持たせる
     expect(store.get(SUB)?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/);
@@ -85,10 +85,10 @@ describe('PUT /api/me', () => {
     ['ニックネームが21文字', { nickname: 'あ'.repeat(21), bloodType: 'A' }],
     ['ニックネームが文字列でない', { nickname: 123, bloodType: 'A' }],
     ['ニックネームに改行', { nickname: 'こま\nつ', bloodType: 'A' }],
-    ['血液型なし', { nickname: 'こまつ' }],
-    ['血液型が一覧にない', { nickname: 'こまつ', bloodType: 'C' }],
-    ['血液型が小文字', { nickname: 'こまつ', bloodType: 'a' }],
-    ['本文が配列', ['こまつ', 'A']],
+    ['血液型なし', { nickname: 'Jiji824' }],
+    ['血液型が一覧にない', { nickname: 'Jiji824', bloodType: 'C' }],
+    ['血液型が小文字', { nickname: 'Jiji824', bloodType: 'a' }],
+    ['本文が配列', ['Jiji824', 'A']],
     ['本文がJSONでない', '{nickname:'],
   ])('%s は 400 VALIDATION_ERROR', async (_name, body) => {
     const { handler, store } = setup();
