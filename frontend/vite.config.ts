@@ -97,7 +97,7 @@ export default defineConfig({
       '/api': {
         target: 'https://mug.st2026ne.workers.dev',
         changeOrigin: true,
-        // 証明書は確かめる。社内の通信が独自の証明書を挟んで転送できないときだけ、
+        // 証明書は確かめる。プロキシ環境などで証明書のエラーになり転送できないときだけ、
         // MUG_PROXY_INSECURE=1 npm run dev で起動すると検証を外す（手元の転送だけ。本番の Worker には関係ない）
         secure: process.env.MUG_PROXY_INSECURE !== '1',
       },
