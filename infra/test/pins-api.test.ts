@@ -5,7 +5,7 @@ import type { UserItem } from '../lambda/api/users';
 
 // POST /api/pins・GET /api/pins のテスト（偽物の DB・地理院API を使う）。
 
-const KOMATSU: UserItem = { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 2 };
+const JIJI824: UserItem = { userId: SUB, nickname: 'Jiji824', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 2 };
 const ORIGINAL = { lat: 35.68123, lng: 139.76712 };
 
 function post(body: unknown, token: string | undefined = GOOD_TOKEN) {
@@ -14,7 +14,7 @@ function post(body: unknown, token: string | undefined = GOOD_TOKEN) {
 
 describe('POST /api/pins', () => {
   test('ピンを立てると 201。ずらした位置・市町村を返し、userId とニックネームは返さない', async () => {
-    const { handler, pinStore } = setup({ users: [KOMATSU] });
+    const { handler, pinStore } = setup({ users: [JIJI824] });
     const res = await call(handler, post({ ...ORIGINAL, stamp: 'kayui', memo: ' 公園のベンチ ' }));
 
     expect(res.status).toBe(201);
@@ -28,7 +28,7 @@ describe('POST /api/pins', () => {
     // pinId は cell-ULID の形（docs/adr/feature-api-social.md）
     expect(res.body.pinId).toMatch(/^[0-9b-hjkmnp-z]{4}-[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(JSON.stringify(res.body)).not.toContain(SUB);
-    expect(JSON.stringify(res.body)).not.toContain('こまつ');
+    expect(JSON.stringify(res.body)).not.toContain('Jiji824');
 
     // 保存した中身
     expect(pinStore).toHaveLength(1);
@@ -41,7 +41,7 @@ describe('POST /api/pins', () => {
   });
 
   test('元の座標は保存も返却もしない（ずらした位置で地理院APIを呼ぶ）', async () => {
-    const { handler, pinStore, geocodeCalls } = setup({ users: [KOMATSU] });
+    const { handler, pinStore, geocodeCalls } = setup({ users: [JIJI824] });
     const res = await call(handler, post(ORIGINAL));
     const saved = pinStore[0];
     expect(saved.lat).not.toBe(ORIGINAL.lat);
@@ -52,11 +52,11 @@ describe('POST /api/pins', () => {
   });
 
   test('ランキング（人・市町村・血液型）と pinCount を1ずつ増やす', async () => {
-    const { handler, rankings, store } = setup({ users: [KOMATSU] });
+    const { handler, rankings, store } = setup({ users: [JIJI824] });
     await call(handler, post(ORIGINAL));
     await call(handler, post(ORIGINAL));
     expect(Object.fromEntries(rankings)).toEqual({
-      [`2026-11#user|${SUB}`]: { label: 'こまつ', count: 2 },
+      [`2026-11#user|${SUB}`]: { label: 'Jiji824', count: 2 },
       '2026-11#city|13101': { label: '東京都千代田区', count: 2 },
       '2026-11#blood|A': { label: 'A型', count: 2 },
     });
@@ -64,7 +64,7 @@ describe('POST /api/pins', () => {
   });
 
   test('市町村が不明なら city "不明"・cityCode null で成功し、市町村ランキングは数えない', async () => {
-    const { handler, rankings, pinStore } = setup({ users: [KOMATSU], city: { city: '不明', cityCode: null } });
+    const { handler, rankings, pinStore } = setup({ users: [JIJI824], city: { city: '不明', cityCode: null } });
     const res = await call(handler, post(ORIGINAL));
     expect(res.status).toBe(201);
     expect(res.body.city).toBe('不明');
@@ -74,33 +74,33 @@ describe('POST /api/pins', () => {
   });
 
   test('月は日本時間で区切る（UTCでは10/31でも日本時間で11/1なら 2026-11）', async () => {
-    const { handler, rankings } = setup({ users: [KOMATSU], overrides: { now: () => new Date('2026-10-31T15:30:00Z') } });
+    const { handler, rankings } = setup({ users: [JIJI824], overrides: { now: () => new Date('2026-10-31T15:30:00Z') } });
     const res = await call(handler, post(ORIGINAL));
     expect(res.body.createdAt).toBe('2026-11-01T00:30:00+09:00');
     expect([...rankings.keys()].every((k) => k.startsWith('2026-11#'))).toBe(true);
   });
 
   test('スタンプとメモは省略できる（stamp は null、memo は空）', async () => {
-    const { handler } = setup({ users: [KOMATSU] });
+    const { handler } = setup({ users: [JIJI824] });
     const res = await call(handler, post(ORIGINAL));
     expect(res.body).toMatchObject({ stamp: null, memo: '' });
   });
 
   test('メモは100文字まで（絵文字も1文字）、改行は使える', async () => {
-    const { handler } = setup({ users: [KOMATSU] });
+    const { handler } = setup({ users: [JIJI824] });
     expect((await call(handler, post({ ...ORIGINAL, memo: '🦟'.repeat(100) }))).status).toBe(201);
     const res = await call(handler, post({ ...ORIGINAL, memo: '公園\r\nベンチ' }));
     expect(res.body.memo).toBe('公園\nベンチ');
   });
 
   test('本文の userId は無視し、トークンの sub を使う', async () => {
-    const { handler, pinStore } = setup({ users: [KOMATSU] });
+    const { handler, pinStore } = setup({ users: [JIJI824] });
     await call(handler, post({ ...ORIGINAL, userId: 'hacker' }));
     expect(pinStore[0].userId).toBe(SUB);
   });
 
   test('ログインしていなければ 401（入力チェックより先）', async () => {
-    const { handler, pinStore } = setup({ users: [KOMATSU] });
+    const { handler, pinStore } = setup({ users: [JIJI824] });
     expect((await call(handler, post({ lat: 'x' }, ''))).status).toBe(401);
     expect((await call(handler, post(ORIGINAL, 'bad'))).status).toBe(401);
     expect(pinStore).toHaveLength(0);
@@ -130,14 +130,14 @@ describe('POST /api/pins', () => {
     ['本文が配列', [35.6, 139.7]],
     ['本文がJSONでない', '{lat:'],
   ])('%s は 400 VALIDATION_ERROR', async (_name, body) => {
-    const { handler, pinStore } = setup({ users: [KOMATSU] });
+    const { handler, pinStore } = setup({ users: [JIJI824] });
     const res = await call(handler, post(body));
     expect(res).toMatchObject({ status: 400, body: { error: 'VALIDATION_ERROR' } });
     expect(pinStore).toHaveLength(0);
   });
 
   test('境界の値（20・46・122・154）は受け付ける', async () => {
-    const { handler } = setup({ users: [KOMATSU] });
+    const { handler } = setup({ users: [JIJI824] });
     expect((await call(handler, post({ lat: 20, lng: 122 }))).status).toBe(201);
     expect((await call(handler, post({ lat: 46, lng: 154 }))).status).toBe(201);
   });
@@ -146,7 +146,7 @@ describe('POST /api/pins', () => {
     const errors: string[] = [];
     const spy = jest.spyOn(console, 'error').mockImplementation((...a) => void errors.push(a.join(' ')));
     const { handler, pinStore } = setup({
-      users: [KOMATSU],
+      users: [JIJI824],
       overrides: {
         rankings: {
           increment: async () => {

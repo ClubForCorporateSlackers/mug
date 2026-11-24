@@ -10,7 +10,7 @@
 
 ## 判断：スタンプの件数は Pins の `reactions` から読む（強い整合性の GetItem 1回）
 
-- 状態：承認（11/19 小松。decisions.md #37 に移した）
+- 状態：承認（11/19 Jiji824。decisions.md #37 に移した）
 
 ### 状況（何に迷ったか）
 
@@ -37,7 +37,7 @@ PR #16 の #13 は返す形だけを決めていて、件数を Pins の `reacti
 
 ## 判断：自分が押したものは、Reactions を GetItem で3回（種類の数だけ）同時に読む
 
-- 状態：承認（11/19 小松。decisions.md #37 に移した）
+- 状態：承認（11/19 Jiji824。decisions.md #37 に移した）
 
 ### 状況（何に迷ったか）
 
@@ -64,7 +64,7 @@ Reactions の `sk` は `種類#userId` なので、キーは `odaiji#<sub>`・`k
 
 ## 判断：X-Id-Token が「ない」なら `myReactions: []`、「あるが正しくない・期限切れ」なら 401
 
-- 状態：承認（11/19 小松。decisions.md #37 に移した）
+- 状態：承認（11/19 Jiji824。decisions.md #37 に移した）
 
 ### 状況（何に迷ったか）
 

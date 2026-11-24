@@ -9,7 +9,7 @@ import type { UserItem } from '../lambda/api/users';
 // PATCH /api/pins/{pinId}・DELETE /api/pins/{pinId} のテスト（偽物の DB・地理院API を使う）。
 // 決めたことは docs/adr/feature-api-pins-edit.md。
 
-const KOMATSU: UserItem = { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 3 };
+const JIJI824: UserItem = { userId: SUB, nickname: 'Jiji824', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 3 };
 const OTHER = 'other-sub-999';
 
 // 立てたのは10月（今は 2026-11-17 の設定）。ランキングは「立てた月」の分を直すことを確かめるため
@@ -56,7 +56,7 @@ function seedRankings(rankings: Map<string, { label: string; count: number }>, r
 describe('PATCH /api/pins/{pinId}', () => {
   test('スタンプとメモだけ変える。返す形は POST と同じで、userId・ニックネーム・血液型は返さない', async () => {
     const pin = makePin();
-    const { handler, pinStore, geocodeCalls } = setup({ users: [KOMATSU], pins: [pin] });
+    const { handler, pinStore, geocodeCalls } = setup({ users: [JIJI824], pins: [pin] });
     const res = await call(handler, patch(pin, { stamp: 'itai', memo: ' 川のそば ' }));
 
     expect(res.status).toBe(200);
@@ -224,14 +224,14 @@ describe('jitterWithinCell（区画の中でずらす）', () => {
 
 describe('DELETE /api/pins/{pinId}', () => {
   function comment(pinId: string, n: number): CommentItem {
-    return { pinId, sk: `2026-10-21T00:00:0${n}+09:00#C${n}`, commentId: `C${n}`, userId: OTHER, nickname: 'しばた', text: 'お大事に', createdAt: 'x' };
+    return { pinId, sk: `2026-10-21T00:00:0${n}+09:00#C${n}`, commentId: `C${n}`, userId: OTHER, nickname: 'shibatanaoto0428', text: 'お大事に', createdAt: 'x' };
   }
 
   test('ピン・コメント・スタンプを消し、立てた月のランキング（人・市町村・血液型）と pinCount を1減らす', async () => {
     const pin = makePin();
     const otherPin = makePin({ userId: OTHER }, new Date('2026-10-21T01:00:00Z'));
     const { handler, pinStore, commentStore, reactionStore, rankings, store } = setup({
-      users: [KOMATSU],
+      users: [JIJI824],
       pins: [pin, otherPin],
       comments: [comment(pin.pinId, 1), comment(pin.pinId, 2), comment(otherPin.pinId, 3)],
     });
@@ -259,7 +259,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('2回目は 404 で、件数を二重に減らさない', async () => {
     const pin = makePin();
-    const { handler, rankings, store } = setup({ users: [KOMATSU], pins: [pin] });
+    const { handler, rankings, store } = setup({ users: [JIJI824], pins: [pin] });
     seedRankings(rankings, { [`2026-10#user|${SUB}`]: 3 });
     expect((await call(handler, del(pin))).status).toBe(200);
     expect((await call(handler, del(pin))).body.error).toBe('NOT_FOUND');
@@ -269,7 +269,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('血液型は、立てたときの値（ピンに保存）で減らす。プロフィールを変えていても同じ', async () => {
     const pin = makePin({ bloodType: 'O' });
-    const { handler, rankings } = setup({ users: [KOMATSU], pins: [pin] }); // 今のプロフィールは A
+    const { handler, rankings } = setup({ users: [JIJI824], pins: [pin] }); // 今のプロフィールは A
     seedRankings(rankings, { '2026-10#blood|O': 2, '2026-10#blood|A': 2 });
     await call(handler, del(pin));
     expect(rankings.get('2026-10#blood|O')?.count).toBe(1);
@@ -278,7 +278,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('血液型を持たない古いピンは、今のプロフィールの血液型で減らす', async () => {
     const pin = makePin({ bloodType: undefined });
-    const { handler, rankings } = setup({ users: [KOMATSU], pins: [pin] });
+    const { handler, rankings } = setup({ users: [JIJI824], pins: [pin] });
     seedRankings(rankings, { '2026-10#blood|A': 2 });
     await call(handler, del(pin));
     expect(rankings.get('2026-10#blood|A')?.count).toBe(1);
@@ -286,7 +286,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('件数はマイナスにしない（行がない・0件・pinCount がない）。市町村が不明なら市町村は触らない', async () => {
     const pin = makePin({ cityCode: null, city: '不明' });
-    const { handler, rankings, store } = setup({ users: [{ ...KOMATSU, pinCount: undefined }], pins: [pin] });
+    const { handler, rankings, store } = setup({ users: [{ ...JIJI824, pinCount: undefined }], pins: [pin] });
     seedRankings(rankings, { [`2026-10#user|${SUB}`]: 0 });
     expect((await call(handler, del(pin))).status).toBe(200);
     expect(rankings.get(`2026-10#user|${SUB}`)?.count).toBe(0);
@@ -299,7 +299,7 @@ describe('DELETE /api/pins/{pinId}', () => {
     const spy = jest.spyOn(console, 'error').mockImplementation((...a) => void errors.push(a.join(' ')));
     const pin = makePin();
     const { handler, pinStore } = setup({
-      users: [KOMATSU],
+      users: [JIJI824],
       pins: [pin],
       comments: [comment(pin.pinId, 1)],
       overrides: { deleteBudgetMs: -1 }, // 最初から時間切れ
@@ -313,14 +313,14 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('ピンを消したあとは、コメント一覧は 404', async () => {
     const pin = makePin();
-    const { handler } = setup({ users: [KOMATSU], pins: [pin], comments: [comment(pin.pinId, 1)] });
+    const { handler } = setup({ users: [JIJI824], pins: [pin], comments: [comment(pin.pinId, 1)] });
     await call(handler, del(pin));
     expect((await call(handler, event('GET', `/api/pins/${publicId(pin)}/comments`))).status).toBe(404);
   });
 
   test('ほかの人のピンは 403 NOT_OWNER（消さない・件数も減らさない）', async () => {
     const pin = makePin({ userId: OTHER });
-    const { handler, pinStore, rankings } = setup({ users: [KOMATSU], pins: [pin] });
+    const { handler, pinStore, rankings } = setup({ users: [JIJI824], pins: [pin] });
     seedRankings(rankings, { '2026-10#city|13101': 7 });
     const res = await call(handler, del(pin));
     expect(res).toMatchObject({ status: 403, body: { error: 'NOT_OWNER' } });
@@ -330,7 +330,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
   test('ログインしていなければ 401、形が違う pinId は 404', async () => {
     const pin = makePin();
-    const { handler, pinStore } = setup({ users: [KOMATSU], pins: [pin] });
+    const { handler, pinStore } = setup({ users: [JIJI824], pins: [pin] });
     expect((await call(handler, del(pin, null))).status).toBe(401);
     expect((await call(handler, del('xn76-bad'))).status).toBe(404);
     expect(pinStore).toHaveLength(1);
@@ -339,7 +339,7 @@ describe('DELETE /api/pins/{pinId}', () => {
 
 describe('POST /api/pins で血液型を保存する', () => {
   test('立てたときの血液型をピンに保存し、地図の API では返さない', async () => {
-    const { handler, pinStore } = setup({ users: [KOMATSU] });
+    const { handler, pinStore } = setup({ users: [JIJI824] });
     await call(handler, event('POST', '/api/pins', { token: GOOD_TOKEN, body: ORIGINAL }));
     expect(pinStore[0].bloodType).toBe('A');
 
