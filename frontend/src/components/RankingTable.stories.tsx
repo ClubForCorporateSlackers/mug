@@ -7,9 +7,9 @@ const meta = {
   args: {
     labelHeader: 'ニックネーム',
     items: [
-      { rank: 1, label: 'こまつ', count: 12 },
-      { rank: 2, label: 'たなか', count: 8 },
-      { rank: 2, label: 'しばた', count: 8 },
+      { rank: 1, label: 'Jiji824', count: 12 },
+      { rank: 2, label: 'kokokoko0825', count: 8 },
+      { rank: 2, label: 'shibatanaoto0428', count: 8 },
       { rank: 4, label: 'すずき', count: 3 },
     ],
   },

@@ -7,7 +7,7 @@ import { createDynamoReactionsRepo } from '../lambda/api/reactions';
 afterEach(() => jest.restoreAllMocks());
 
 const KEY = { cell: 'xn76', sk: '2026-11-17T12:00:00+09:00#01J', pinId: '01J' };
-const ITEM = { type: 'odaiji', userId: 'u1', nickname: 'こまつ', createdAt: '2026-11-17T12:00:00+09:00' };
+const ITEM = { type: 'odaiji', userId: 'u1', nickname: 'Jiji824', createdAt: '2026-11-17T12:00:00+09:00' };
 const repo = () => createDynamoReactionsRepo('ReactionsTable', 'PinsTable');
 
 // トランザクションが条件に合わずに取り消されたときのエラー（並び順：Pins, Reactions）

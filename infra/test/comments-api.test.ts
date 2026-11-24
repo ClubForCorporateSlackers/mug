@@ -5,10 +5,10 @@ import type { UserItem } from '../lambda/api/users';
 
 // GET/POST /api/pins/{pinId}/comments のテスト（偽物の DB を使う）。
 
-const KOMATSU: UserItem = { userId: SUB, nickname: 'こまつ', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 0 };
+const JIJI824: UserItem = { userId: SUB, nickname: 'Jiji824', bloodType: 'A', createdAt: 'x', updatedAt: 'x', pinCount: 0 };
 
 // ピンを1本立てて、その pinId を返す。tick を付けると、呼ぶたびに時計が1秒進む
-async function withPin(users: UserItem[] = [KOMATSU], tick = false) {
+async function withPin(users: UserItem[] = [JIJI824], tick = false) {
   let t = Date.parse('2026-11-17T03:00:00Z');
   const s = setup({ users, overrides: tick ? { now: () => new Date((t += 1000)) } : {} });
   const res = await call(s.handler, event('POST', '/api/pins', { token: GOOD_TOKEN, body: { lat: 35.68, lng: 139.76 } }));
@@ -49,7 +49,7 @@ describe('POST /api/pins/{pinId}/comments', () => {
     expect(res.status).toBe(201);
     expect(res.body).toEqual({
       commentId: expect.stringMatching(/^[0-9A-HJKMNP-TV-Z]{26}$/),
-      nickname: 'こまつ',
+      nickname: 'Jiji824',
       text: 'お大事に！',
       createdAt: '2026-11-17T12:00:00+09:00',
     });
@@ -60,17 +60,17 @@ describe('POST /api/pins/{pinId}/comments', () => {
       pinId: pinStore[0].pinId,
       sk: `2026-11-17T12:00:00+09:00#${res.body.commentId}`,
       userId: SUB,
-      nickname: 'こまつ',
+      nickname: 'Jiji824',
     });
   });
 
   test('ニックネームは投稿時点のものを保存する（あとで変えても前のコメントは変わらない）', async () => {
-    const { handler, pinId } = await withPin([KOMATSU], true); // 同じ時刻だと2件の並びが決まらないので時計を進める
+    const { handler, pinId } = await withPin([JIJI824], true); // 同じ時刻だと2件の並びが決まらないので時計を進める
     await call(handler, postComment(pinId, { text: '1つめ' }));
-    await call(handler, event('PUT', '/api/me', { token: GOOD_TOKEN, body: { nickname: 'こまっちゃん', bloodType: 'A' } }));
+    await call(handler, event('PUT', '/api/me', { token: GOOD_TOKEN, body: { nickname: 'Jiji824ちゃん', bloodType: 'A' } }));
     await call(handler, postComment(pinId, { text: '2つめ' }));
     const res = await call(handler, getComments(pinId));
-    expect(res.body.comments.map((c: { nickname: string }) => c.nickname)).toEqual(['こまつ', 'こまっちゃん']);
+    expect(res.body.comments.map((c: { nickname: string }) => c.nickname)).toEqual(['Jiji824', 'Jiji824ちゃん']);
   });
 
   test('本文の userId は無視し、トークンの sub を使う', async () => {

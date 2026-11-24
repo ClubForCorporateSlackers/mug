@@ -9,8 +9,8 @@ const meta = {
     sections: {
       user: {
         items: [
-          { rank: 1, label: 'こまつ', count: 12 },
-          { rank: 2, label: 'たなか', count: 8 },
+          { rank: 1, label: 'Jiji824', count: 12 },
+          { rank: 2, label: 'kokokoko0825', count: 8 },
         ],
         loading: false,
         error: null,
