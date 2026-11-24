@@ -6,7 +6,7 @@ const app = new cdk.App();
 
 // あとで一括で片付けるためのタグ（AGENTS.md）。ここで1回だけ付け、個別のリソースで上書きしない。
 cdk.Tags.of(app).add('Project', 'mug');
-cdk.Tags.of(app).add('Owner', 'komatsu');
+cdk.Tags.of(app).add('Owner', 'Jiji824');
 cdk.Tags.of(app).add('Purpose', 'hackathon-2026');
 cdk.Tags.of(app).add('DeleteAfter', '2026-11-30');
 

@@ -55,7 +55,7 @@
 - CDKのアプリ全体に、次の4つのタグを必ず付ける（`infra/bin/` のエントリで1回だけ書く。個別のリソースで上書きしない）
   ```ts
   Tags.of(app).add('Project', 'mug');
-  Tags.of(app).add('Owner', 'komatsu');
+  Tags.of(app).add('Owner', 'Jiji824');
   Tags.of(app).add('Purpose', 'hackathon-2026');
   Tags.of(app).add('DeleteAfter', '2026-11-30');
   ```
@@ -65,7 +65,7 @@
 
 ## AIが勝手に実行してはいけないこと
 
-- `npx cdk deploy`、`npx wrangler deploy`、`npx wrangler secret put`（実行するのは小松だけ）
+- `npx cdk deploy`、`npx wrangler deploy`、`npx wrangler secret put`（実行するのはJiji824だけ）
 - `main` への直接のコミット・push
 - 秘密情報の作成・表示・コピー
 

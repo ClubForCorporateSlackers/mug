@@ -18,7 +18,7 @@
 
 ### 決めたこと
 
-小松の了承を得て、アプリクライアントの `authFlows` に `adminUserPassword: true`（ADMIN_USER_PASSWORD_AUTH）を足す。これで、AWS の管理者の認証情報を持つ人が、`aws cognito-idp admin-initiate-auth` で、テスト用ユーザーの IDトークンを取れるようになる。
+Jiji824の了承を得て、アプリクライアントの `authFlows` に `adminUserPassword: true`（ADMIN_USER_PASSWORD_AUTH）を足す。これで、AWS の管理者の認証情報を持つ人が、`aws cognito-idp admin-initiate-auth` で、テスト用ユーザーの IDトークンを取れるようになる。
 
 コードは `infra/lib/mug-stack.ts` に入れた（このブランチ。最初の記録のときは、どのブランチのコミットにもまだなかった）。`infra/test/mug-stack.test.ts` に、ログイン方式が SRP・管理者ログイン・トークン更新の3つだけで、パスワードを直接送る方式（`ALLOW_USER_PASSWORD_AUTH`）がないことを確かめるテストを足した。
 
@@ -36,7 +36,7 @@
 ### 影響・あとで見直すこと
 
 - 取ったトークン・テスト用ユーザーのパスワードは、チャット・ログ・リポジトリに残さない（AGENTS.md「秘密情報の扱い」）
-- ~~ハッカソンの提出前に、まだ必要か見直す。不要なら外す~~ → **外さない**（11/17 小松が変更）
+- ~~ハッカソンの提出前に、まだ必要か見直す。不要なら外す~~ → **外さない**（11/17 Jiji824が変更）
   - デモ用のダミーデータの投入（`scripts/seed/`、docs/adr/feature-seed-data.md）が、このログイン方式を使うため
   - 使えるのは AWS の管理者の権限がある人だけなので、危険は小さい
   - ハッカソン後に環境ごと消す（`cdk destroy`）ときに、アプリクライアントと一緒に消える

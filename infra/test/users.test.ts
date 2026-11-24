@@ -11,7 +11,7 @@ test('プロフィールの保存は UpdateItem 1回。createdAt と pinCount �
     .mockResolvedValue({ Attributes: { userId: 'u1', pinCount: 0 } } as never);
 
   const repo = createDynamoUsersRepo('UsersTable');
-  await repo.saveProfile('u1', 'こまつ', 'A', '2026-11-17T12:00:00+09:00');
+  await repo.saveProfile('u1', 'Jiji824', 'A', '2026-11-17T12:00:00+09:00');
 
   expect(send).toHaveBeenCalledTimes(1);
   const command = send.mock.calls[0][0] as UpdateCommand;
