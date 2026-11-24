@@ -18,7 +18,7 @@ Worker のログ（Workers Logs）を有効にすると、コードの `console.
 
 ### 決めたこと
 
-小松に申告し、了承を得て、次のようにした（コミット c4dbb9b）。
+Jiji824に申告し、了承を得て、次のようにした（コミット c4dbb9b）。
 
 - `worker/wrangler.jsonc` の `observability.logs.invocation_logs` を `false` にした（ログ自体は `enabled: true` のまま）
 - コードから出すログは「メソッド・パス（クエリなし）・Lambda の応答ステータス」の1行だけにした。ヘッダー・env・本文・クエリは出さない

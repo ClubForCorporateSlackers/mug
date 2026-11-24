@@ -10,7 +10,7 @@
 
 > **mug** はオランダ語で「蚊」という意味です。
 
-チーム：小松（バックエンド・インフラ）、柴田、須田、田中
+チーム：Jiji824（バックエンド・インフラ）、shibatanaoto0428、ctibxe、kokokoko0825
 
 URL: https://mug.st2026ne.workers.dev
 
@@ -61,8 +61,8 @@ URL: https://mug.st2026ne.workers.dev
 | 対象 | 方法 | 誰が |
 |---|---|---|
 | 画面とWorker | `main` にマージすると Cloudflare が自動でデプロイ。PRにはプレビューURLが付く | 自動 |
-| AWS（CDK） | `npx cdk deploy` | **小松だけ** |
-| Workerの秘密情報（AWSのキー） | `npx wrangler secret put` | **小松だけ** |
+| AWS（CDK） | `npx cdk deploy` | **Jiji824だけ** |
+| Workerの秘密情報（AWSのキー） | `npx wrangler secret put` | **Jiji824だけ** |
 
 ## 開発の始め方
 
@@ -77,7 +77,7 @@ URL: https://mug.st2026ne.workers.dev
 
 ```bash
 cd frontend
-cp .env.example .env    # CognitoのIDを書く（値は小松から共有。秘密情報ではない）
+cp .env.example .env    # CognitoのIDを書く（値はJiji824から共有。秘密情報ではない）
 npm install
 npm run dev
 ```
@@ -89,7 +89,7 @@ npm run dev
 - PR の CI（`.github/workflows/frontend.yml`）：整形のチェック・lint・ビルド・Storybook のビルド・Lighthouse。ほかに CodeQL（`codeql.yml`）が全体を調べます
 - APIができるまでは、docs/api-spec.md の例をダミーデータとして使って画面を作ってください。
 
-### バックエンド（小松）
+### バックエンド（Jiji824）
 
 ```bash
 cd infra

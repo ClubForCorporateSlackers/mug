@@ -1,6 +1,6 @@
 # DBスキーマ（案）蚊に刺された場所を共有するアプリ
 
-作成：小松（バックエンド担当）／ 作成日：2026-11-16 ／ 状態：**案**
+作成：Jiji824（バックエンド担当）／ 作成日：2026-11-16 ／ 状態：**案**
 
 APIは [api-spec.md](./api-spec.md) を参照。
 
@@ -41,7 +41,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
 ```json
 {
   "userId": "a1b2c3…",          // CognitoのID（sub）
-  "nickname": "こまつ",
+  "nickname": "Jiji824",
   "bloodType": "A",              // A / B / O / AB / UNKNOWN
   "pinCount": 3,                 // 立てたピンの数（GET /api/me で返す）
   "createdAt": "2026-11-16T10:00:00+09:00",
@@ -88,7 +88,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
   "sk": "2026-11-16T11:00:00+09:00#01JE…",   // 日時#commentId（古い順に並べるため）
   "commentId": "01JE…",
   "userId": "d4e5f6…",
-  "nickname": "しばた",          // 投稿時点のニックネームをコピーして保存
+  "nickname": "shibatanaoto0428",          // 投稿時点のニックネームをコピーして保存
   "text": "お大事に！",
   "createdAt": "2026-11-16T11:00:00+09:00"
 }
@@ -102,7 +102,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
   "sk": "odaiji#d4e5f6…",        // 種類#userId（1人1種類1回にするため）
   "type": "odaiji",
   "userId": "d4e5f6…",
-  "nickname": "しばた",
+  "nickname": "shibatanaoto0428",
   "createdAt": "2026-11-16T11:05:00+09:00"
 }
 ```
@@ -112,7 +112,7 @@ APIは [api-spec.md](./api-spec.md) を参照。
 ### Rankings
 
 ```json
-{ "pk": "2026-11#user",  "key": "a1b2c3…",  "label": "こまつ",         "count": 12 }
+{ "pk": "2026-11#user",  "key": "a1b2c3…",  "label": "Jiji824",         "count": 12 }
 { "pk": "2026-11#city",  "key": "13101",    "label": "東京都千代田区", "count": 30 }
 { "pk": "2026-11#blood", "key": "A",        "label": "A型",            "count": 25 }
 ```

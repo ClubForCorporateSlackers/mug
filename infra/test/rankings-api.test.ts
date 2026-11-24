@@ -15,9 +15,9 @@ function withCounts(month: string, kind: string, entries: RankingEntry[]) {
 describe('GET /api/rankings', () => {
   test('ログインなしで、件数の多い順に返す。同じ件数は同じ順位（1, 2, 2, 4）', async () => {
     const { handler } = withCounts('2026-11', 'user', [
-      { key: 'u1', label: 'こまつ', count: 3 },
-      { key: 'u2', label: 'たなか', count: 12 },
-      { key: 'u3', label: 'しばた', count: 8 },
+      { key: 'u1', label: 'Jiji824', count: 3 },
+      { key: 'u2', label: 'kokokoko0825', count: 12 },
+      { key: 'u3', label: 'shibatanaoto0428', count: 8 },
       { key: 'u4', label: 'すずき', count: 8 },
     ]);
     const res = await call(handler, get({ type: 'user', month: '2026-11' }));
@@ -27,10 +27,10 @@ describe('GET /api/rankings', () => {
         type: 'user',
         month: '2026-11',
         items: [
-          { rank: 1, label: 'たなか', count: 12 },
-          { rank: 2, label: 'しばた', count: 8 },
+          { rank: 1, label: 'kokokoko0825', count: 12 },
+          { rank: 2, label: 'shibatanaoto0428', count: 8 },
           { rank: 2, label: 'すずき', count: 8 },
-          { rank: 4, label: 'こまつ', count: 3 },
+          { rank: 4, label: 'Jiji824', count: 3 },
         ],
       },
     });
@@ -69,7 +69,7 @@ describe('GET /api/rankings', () => {
   });
 
   test('ほかの月・ほかの種類は混ざらない', async () => {
-    const s = withCounts('2026-10', 'user', [{ key: 'u1', label: 'こまつ', count: 3 }]);
+    const s = withCounts('2026-10', 'user', [{ key: 'u1', label: 'Jiji824', count: 3 }]);
     s.rankings.set('2026-11#city|13101', { label: '東京都千代田区', count: 1 });
     const res = await call(s.handler, get({ type: 'user', month: '2026-11' }));
     expect(res.body.items).toEqual([]);
@@ -83,7 +83,7 @@ describe('GET /api/rankings', () => {
 
   test('ピンを立てるとランキングに出る', async () => {
     const s = setup({
-      users: [{ userId: 'user-sub-123', nickname: 'こまつ', bloodType: 'B', createdAt: 'x', updatedAt: 'x' }],
+      users: [{ userId: 'user-sub-123', nickname: 'Jiji824', bloodType: 'B', createdAt: 'x', updatedAt: 'x' }],
     });
     await call(s.handler, event('POST', '/api/pins', { token: 'good-token', body: { lat: 35.68, lng: 139.76 } }));
     const blood = await call(s.handler, get({ type: 'blood' }));
